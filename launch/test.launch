@@ -1,0 +1,4 @@
+<launch>                                              
+   <node name="myNodeName" pkg="rtt_ros" type="deployer" launch-prefix="konsole -e" args=" -s $(find cosima-controller)/scripts/test.ops --">
+   </node>           
+</launch> 
