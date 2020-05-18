@@ -10,7 +10,7 @@ import("eigen_typekit_d")
 # import("kdl_typekit")
 
 loadComponent("bullet_robot","cosima::RTTBulletRobotManipulatorSim")
-# Faster than 1Kz, because reality is alsways fast :D
+# Faster than 1Kz, because reality is always fast :D
 setActivity("bullet_robot",0.001,10,ORO_SCHED_OTHER)
 bullet_robot.connect()
 bullet_robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf")
