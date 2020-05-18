@@ -34,8 +34,12 @@ using namespace controller;
 
 RTTJointGravComp::RTTJointGravComp(std::string const &name) : RTT::TaskContext(name), include_gravity(true), total_dof_size(0)
 {
-    addOperation("addRobot", &RTTJointGravComp::addRobot, this).doc("set DOF size to input and output for the robot");
-    addProperty("includeGravity", this->include_gravity);
+    addOperation("addRobot", &RTTJointGravComp::addRobot, this)
+        .doc("Add a robot in terms of the sequential (controlled) DoF")
+        .arg("dof", "degrees of freedom");
+    addProperty("include_gravity", this->include_gravity)
+        .doc("Include the gravity term in the commanded torques (default: true).");
+
     this->vec_robot_dof.clear();
 }
 
@@ -46,6 +50,11 @@ double RTTJointGravComp::getOrocosTime()
 
 bool RTTJointGravComp::configureHook()
 {
+    if (this->vec_robot_dof.size() <= 0)
+    {
+        PRELOG(Warning) << "Please add at least one robot, before configuring this component!" << RTT::endlog();
+        return false;
+    }
     // count the total DoF size of the added robots
     this->total_dof_size = 0;
 
@@ -118,6 +127,20 @@ void RTTJointGravComp::stopHook()
 
 void RTTJointGravComp::cleanupHook()
 {
+    if (this->ports()->getPort("in_robotstatus_port"))
+    {
+        this->ports()->removePort("in_robotstatus_port");
+    }
+
+    if (this->ports()->getPort("in_coriolisAndGravity_port"))
+    {
+        this->ports()->removePort("in_coriolisAndGravity_port");
+    }
+
+    if (this->ports()->getPort("out_torques_port"))
+    {
+        this->ports()->removePort("out_torques_port");
+    }
 }
 
 bool RTTJointGravComp::addRobot(const unsigned int &dof)
