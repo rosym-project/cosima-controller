@@ -6,8 +6,8 @@ import("rtt-bullet-embedded")
 # bullet.spawnModel("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf")
 import("cosima-controller")
 
-import("eigen_typekit")
-import("kdl_typekit")
+import("eigen_typekit_d")
+# import("kdl_typekit")
 
 loadComponent("bullet_robot","cosima::RTTBulletRobotManipulatorSim")
 # Faster than 1Kz, because reality is alsways fast :D
@@ -28,11 +28,15 @@ setActivity("KinDyn",0.001,10,ORO_SCHED_OTHER)
 
 KinDyn.addChain("KDL","/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf","iiwa7_link_0","iiwa7_link_ee")
 
+KinDyn.configure()
+
 var ConnPolicy cp;
 connect("bullet_robot.out_kuka1_jointstate_fdb","KinDyn.in_robotstatus_port",cp)
 
-KinDyn.configure()
 bullet_robot.start()
 
 # import pybullet as p
 # client = p.connect(p.GUI_SERVER,1234)
+
+
+# catkin build -DCMAKE_BUILD_TYPE=DEBUG -DOROCOS-RTT_DIR=/home/dwigand/citk/systems/cogimon-minimal-nightly/lib/cmake/orocos-rtt -DBullet7_DIR=/home/dwigand/citk/systems/cogimon-minimal-nightly/lib/cmake/bullet cosima-controller -Dorocos_kdl_DIR=/home/dwigand/citk/systems/cogimon-minimal-nightly/share/orocos_kdl -Dkdl_parser_DIR=/home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/devel/share/kdl_parser

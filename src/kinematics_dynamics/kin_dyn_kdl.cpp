@@ -35,6 +35,11 @@ KinDynMultiArm_KDL::KinDynMultiArm_KDL(const std::string &modelname) : KinDynInt
 {
   this->loadModel(modelname);
   quat_helper.setZero();
+
+  this->gravity_vectorKDL = KDL::Vector();
+  this->gravity_vectorKDL.data[0] = 0.0;
+  this->gravity_vectorKDL.data[1] = 0.0;
+  this->gravity_vectorKDL.data[2] = -9.81;
 }
 
 void KinDynMultiArm_KDL::initializeVariables()
@@ -132,7 +137,7 @@ void KinDynMultiArm_KDL::computeStackPart(const sensor_msgs::JointState &in_robo
   out_jacobian.block(index_ts, index_js, 6, _js_dof) = this->J.data;
   out_jacobianDot.block(index_ts, index_js, 6, _js_dof) = this->Jd.data;
 
-  out_cartAcc.segment(index_ts, 6) = out_jacobianDot * this->q_qd.qdot.data; // TODO: add out_jacobian_var * in_robotstatus_var.accelerations
+  out_cartAcc.segment(index_ts, 6) = this->Jd.data * this->q_qd.qdot.data; // TODO: add out_jacobian_var * in_robotstatus_var.accelerations
 }
 
 
@@ -164,7 +169,6 @@ void KinDynMultiArm_KDL::solve(const sensor_msgs::JointState &in_robotstatus)
   ///////////////////////////////////////////
   this->q_qd.q.data.setZero();
   this->q_qd.qdot.data.setZero();
-
   this->g.data.setZero();
   this->M.data.setZero();
   this->c.data.setZero();
@@ -183,7 +187,6 @@ void KinDynMultiArm_KDL::solve(const sensor_msgs::JointState &in_robotstatus)
   ////////////////////////////////
   this->id_dyn_solver->JntToGravity(this->q_qd.q, this->g);
   this->id_dyn_solver->JntToCoriolis(this->q_qd.q, this->q_qd.qdot, this->c);
-
   this->id_dyn_solver->JntToMass(this->q_qd.q, this->M);
 
   //////////////////////////////////////////////
@@ -204,7 +207,13 @@ void KinDynMultiArm_KDL::solve(const sensor_msgs::JointState &in_robotstatus)
   unsigned int _number_of_segments = this->kdl_chain.getNrOfSegments();
 
   this->jnt_to_jac_solver->JntToJac(this->q_qd.q, this->J, _number_of_segments);
+
+  // PRELOG(Error) << "this->q_qd.q = " << this->q_qd.q.data << RTT::endlog();
+  // PRELOG(Error) << "this->q_qd.qdot = " << this->q_qd.qdot.data << RTT::endlog();
+  // PRELOG(Error) << "_number_of_segments = " << _number_of_segments << RTT::endlog();
+  // PRELOG(Error) << "this->Jd 1 = (" << this->Jd.rows() << ", " << this->Jd.columns() << ")" << RTT::endlog();
   this->jnt_to_jac_dot_solver->JntToJacDot(this->q_qd, this->Jd, _number_of_segments);
+  // PRELOG(Error) << "this->Jd 2 = (" << this->Jd.rows() << ", " << this->Jd.columns() << ")" << RTT::endlog();
 
   this->jnt_to_cart_pos_solver->JntToCart(this->q_qd.q, this->cartPosFrame, _number_of_segments);
   this->jnt_to_cart_vel_solver->JntToCart(this->q_qd, this->cartVelFrame, _number_of_segments);

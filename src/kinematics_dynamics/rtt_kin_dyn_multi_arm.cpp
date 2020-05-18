@@ -332,6 +332,18 @@ void RTTKinDynMultiArm::preparePorts()
     }
 
     this->portsArePrepared = true;
+
+    // PRELOG(Error) << "[RTT] out_inertia_var(" << out_inertia_var.rows() << ", " << out_inertia_var.cols() << ")" << RTT::endlog();
+    // PRELOG(Error) << "[RTT] out_inertiaInv_var(" << out_inertiaInv_var.rows() << ", " << out_inertiaInv_var.cols() << ")" << RTT::endlog();
+    // PRELOG(Error) << "[RTT] out_gravity_var(" << out_gravity_var.rows() << ", " << out_gravity_var.cols() << ")" << RTT::endlog();
+    // PRELOG(Error) << "[RTT] out_coriolis_var(" << out_coriolis_var.rows() << ", " << out_coriolis_var.cols() << ")" << RTT::endlog();
+    // PRELOG(Error) << "[RTT] out_coriolisAndGravity_var(" << out_coriolisAndGravity_var.rows() << ", " << out_coriolisAndGravity_var.cols() << ")" << RTT::endlog();
+    // PRELOG(Error) << "[RTT] out_cartPos_var(" << out_cartPos_var.rows() << ", " << out_cartPos_var.cols() << ")" << RTT::endlog();
+    // PRELOG(Error) << "[RTT] out_cartVel_var(" << out_cartVel_var.rows() << ", " << out_cartVel_var.cols() << ")" << RTT::endlog();
+    // PRELOG(Error) << "[RTT] out_cartAcc_var(" << out_cartAcc_var.rows() << ", " << out_cartAcc_var.cols() << ")" << RTT::endlog();
+    // PRELOG(Error) << "[RTT] out_jacobian_var(" << out_jacobian_var.rows() << ", " << out_jacobian_var.cols() << ")" << RTT::endlog();
+    // PRELOG(Error) << "[RTT] out_jacobianDot_var(" << out_jacobianDot_var.rows() << ", " << out_jacobianDot_var.cols() << ")" << RTT::endlog();
+
 }
 
 // void RTTKinDynMultiArm::compute(
