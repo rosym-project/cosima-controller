@@ -106,6 +106,8 @@ void RTTKinDynMultiArm::updateHook()
             out_cartVel_vars[arm].angular.y = out_cartVel_var((arm * 6) + 4);
             out_cartVel_vars[arm].angular.z = out_cartVel_var((arm * 6) + 5);
         }
+
+        out_robotstatus_var = in_robotstatus_var;
     }
     else // if (in_robotstatus_flow == RTT::NoData)
     {
@@ -127,6 +129,8 @@ void RTTKinDynMultiArm::updateHook()
         out_jacobian_var.setZero();
         out_jacobianDot_var.setZero();
     }
+    
+    PRELOG(Error) << "KIN 2 out_coriolisAndGravity_var = " << out_coriolisAndGravity_var << RTT::endlog();
 
     // Write the data through the ports!
     out_robotstatus_port.write(out_robotstatus_var);

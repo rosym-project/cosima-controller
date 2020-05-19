@@ -56,22 +56,25 @@ void KinDynMultiArm_KDL::initializeVariables()
   this->Jd = KDL::Jacobian(this->kdl_chain.getNrOfJoints());
   this->cartPosFrame = KDL::Frame();
   this->cartVelFrame = KDL::FrameVel();
+
+  this->jnt_array_zero = KDL::JntArray(this->kdl_chain.getNrOfJoints());
+  this->wrench_zero = KDL::Wrenches(this->kdl_chain.getNrOfSegments(), KDL::Wrench::Zero());
 }
 
 void KinDynMultiArm_KDL::computeStackPart(const sensor_msgs::JointState &in_robotstatus,
-                      const unsigned int &index_js,
-                      const unsigned int &index_ts,
-                      const unsigned int &index_ts_quat,
-                      Eigen::MatrixXd &out_inertia,
-                      Eigen::MatrixXd &out_inertiaInv,
-                      Eigen::VectorXd &out_gravity,
-                      Eigen::VectorXd &out_coriolis,
-                      Eigen::VectorXd &out_coriolisAndGravity,
-                      Eigen::VectorXd &out_cartPos,
-                      Eigen::VectorXd &out_cartVel,
-                      Eigen::VectorXd &out_cartAcc,
-                      Eigen::MatrixXd &out_jacobian,
-                      Eigen::MatrixXd &out_jacobianDot)
+                                          const unsigned int &index_js,
+                                          const unsigned int &index_ts,
+                                          const unsigned int &index_ts_quat,
+                                          Eigen::MatrixXd &out_inertia,
+                                          Eigen::MatrixXd &out_inertiaInv,
+                                          Eigen::VectorXd &out_gravity,
+                                          Eigen::VectorXd &out_coriolis,
+                                          Eigen::VectorXd &out_coriolisAndGravity,
+                                          Eigen::VectorXd &out_cartPos,
+                                          Eigen::VectorXd &out_cartVel,
+                                          Eigen::VectorXd &out_cartAcc,
+                                          Eigen::MatrixXd &out_jacobian,
+                                          Eigen::MatrixXd &out_jacobianDot)
 {
   this->solve(in_robotstatus);
 
@@ -140,7 +143,6 @@ void KinDynMultiArm_KDL::computeStackPart(const sensor_msgs::JointState &in_robo
   out_cartAcc.segment(index_ts, 6) = this->Jd.data * this->q_qd.qdot.data; // TODO: add out_jacobian_var * in_robotstatus_var.accelerations
 }
 
-
 void KinDynMultiArm_KDL::solve(const sensor_msgs::JointState &in_robotstatus)
 {
   // //////////////////////////
@@ -188,6 +190,13 @@ void KinDynMultiArm_KDL::solve(const sensor_msgs::JointState &in_robotstatus)
   this->id_dyn_solver->JntToGravity(this->q_qd.q, this->g);
   this->id_dyn_solver->JntToCoriolis(this->q_qd.q, this->q_qd.qdot, this->c);
   this->id_dyn_solver->JntToMass(this->q_qd.q, this->M);
+
+  // // With or without velocity (qdot)?
+  // int code = this->jnt_gravity_solver->CartToJnt(this->q_qd.q,
+  //                                                this->q_qd.qdot,
+  //                                                this->jnt_array_zero,
+  //                                                this->wrench_zero,
+  //                                                this->g);
 
   //////////////////////////////////////////////
   // CLOSE FORM FOR LWR 4(+) TO OVERRRIDE KDL //
@@ -306,15 +315,15 @@ void KinDynMultiArm_KDL::compute(const sensor_msgs::JointState &in_robotstatus,
 
 bool KinDynMultiArm_KDL::exists_test(const std::string &name)
 {
-    if (FILE *file = fopen(name.c_str(), "r"))
-    {
-        fclose(file);
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+  if (FILE *file = fopen(name.c_str(), "r"))
+  {
+    fclose(file);
+    return true;
+  }
+  else
+  {
+    return false;
+  }
 }
 
 unsigned int KinDynMultiArm_KDL::getDoF()
@@ -469,16 +478,57 @@ bool KinDynMultiArm_KDL::setChainWithWorldOffset(const std::string &chain_root_l
     return false;
   }
 
+  /////////////////////////////////////////////
+  ////// ADD PAYLOAD OF THE LAST SEGMENT //////
+  /////////////////////////////////////////////
+
+  /**
+   * https://github.com/ubi-agni/lwr_robot/blob/f98f09b760969f88039d257e0b239918fcaaa8cb/lwr_simulation/src/lwr_controller.cpp#L280
+   * Many thanks to Dr. Guillaume Walck (gwalck[AT]techfak.uni-bielefeld.de) for sharing this code snipped!
+   */
+  // KDL::Segment *segment_ee_ptr = &(_chain_offset_tmp.segments[_chain_offset_tmp.getNrOfSegments() - 1]);
+  // KDL::RigidBodyInertia inertia_ee = segment_ee_ptr->getInertia();
+  // // retrieve the initial mass, cog and inertia of the last segment
+  // double _ee_mass = inertia_ee.getMass();
+  // KDL::Vector _ee_cog = inertia_ee.getCOG();
+  // KDL::RotationalInertia rot_inertia_ee = inertia_ee.getRotationalInertia();
+  // // add payload cog offset and mass
+  // // retrieve tool mass and cog offset.
+  // // the offset is the relative position of the tool com from the last segment cog
+  // // given in the frame orientation of the last segment.
+  // // so this offset is valid only for an certain assembly (calib of the tool)
+
+  // segment_ee_ptr->setInertia(KDL::RigidBodyInertia(_ee_mass, _ee_cog, rot_inertia_ee));
+
+  // get last segment
+  KDL::Segment *segment_ee_ptr = &(_chain_offset_tmp.segments[_chain_offset_tmp.getNrOfSegments() - 1]);
+  // get its dynamic parameters
+  KDL::RigidBodyInertia inertia_ee = segment_ee_ptr->getInertia();
+  double eeMass_ = inertia_ee.getMass();
+  KDL::Vector eeCOG_ = inertia_ee.getCOG();
+  KDL::RotationalInertia rot_inertia_ee = inertia_ee.getRotationalInertia();
+  double cog_x = 0.0;
+  double cog_y = 0.0;
+  double cog_z = 0.108000;
+  KDL::Vector payload_cog_offset(cog_x, cog_y, cog_z);
+  double m = 0.01 + 0.01;
+  double m_combined = eeMass_ + m;
+  KDL::Vector cog_offset_combined = (payload_cog_offset - eeCOG_) * m / m_combined;
+  cog_offset_combined += eeCOG_;
+  // set the new inertia at the end-effector.
+  // segment_ee_ptr->setInertia(KDL::RigidBodyInertia(m_combined, cog_offset_combined, rot_inertia_ee));
+
   this->kdl_chain = _chain_offset_tmp;
 
   ////////////////////////////////////////
   ////// INITIALIZE THE KDL SOLVERS //////
   ////////////////////////////////////////
-  id_dyn_solver.reset(new KDL::ChainDynParam(this->kdl_chain, this->gravity_vectorKDL));
-  jnt_to_jac_solver.reset(new KDL::ChainJntToJacSolver(this->kdl_chain));
-  jnt_to_jac_dot_solver.reset(new KDL::ChainJntToJacDotSolver(this->kdl_chain));
-  jnt_to_cart_pos_solver.reset(new KDL::ChainFkSolverPos_recursive(this->kdl_chain));
-  jnt_to_cart_vel_solver.reset(new KDL::ChainFkSolverVel_recursive(this->kdl_chain));
+  this->id_dyn_solver.reset(new KDL::ChainDynParam(this->kdl_chain, this->gravity_vectorKDL));
+  this->jnt_to_jac_solver.reset(new KDL::ChainJntToJacSolver(this->kdl_chain));
+  this->jnt_to_jac_dot_solver.reset(new KDL::ChainJntToJacDotSolver(this->kdl_chain));
+  this->jnt_to_cart_pos_solver.reset(new KDL::ChainFkSolverPos_recursive(this->kdl_chain));
+  this->jnt_to_cart_vel_solver.reset(new KDL::ChainFkSolverVel_recursive(this->kdl_chain));
+  this->jnt_gravity_solver.reset(new KDL::ChainIdSolver_RNE(this->kdl_chain, this->gravity_vectorKDL));
 
   this->initializeVariables();
 

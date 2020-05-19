@@ -44,6 +44,10 @@
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/chainjnttojacdotsolver.hpp>
 
+#include <kdl/chainiksolverpos_nr_jl.hpp>
+#include <kdl/chainiksolvervel_pinv.hpp>
+#include <kdl/chainidsolver_recursive_newton_euler.hpp>
+
 // BOOST includes
 #include <boost/scoped_ptr.hpp>
 
@@ -119,6 +123,7 @@ namespace cosima
     boost::shared_ptr<KDL::ChainJntToJacDotSolver> jnt_to_jac_dot_solver;
     boost::shared_ptr<KDL::ChainFkSolverPos_recursive> jnt_to_cart_pos_solver;
     boost::shared_ptr<KDL::ChainFkSolverVel_recursive> jnt_to_cart_vel_solver;
+    boost::shared_ptr<KDL::ChainIdSolver_RNE> jnt_gravity_solver;
 
     KDL::JntArrayVel q_qd;
     KDL::JntArray g;
@@ -138,6 +143,8 @@ namespace cosima
 
     // Helper
     Eigen::Vector4d quat_helper;
+    KDL::JntArray jnt_array_zero;
+    KDL::Wrenches wrench_zero;
   };
 
 } // namespace cosima
