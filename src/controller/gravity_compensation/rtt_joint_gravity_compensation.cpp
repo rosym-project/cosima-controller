@@ -147,7 +147,7 @@ bool RTTJointGravComp::addRobot(const unsigned int &dof)
 {
     if (dof <= 0)
     {
-        PRELOG(Error) << "In order to add a robot, it needs to have at least DoF(" << dof << ") > 0" << RTT::endlog();
+        PRELOG(Warning) << "In order to add a robot, it needs to have at least DoF(" << dof << ") > 0" << RTT::endlog();
         return false;
     }
     this->vec_robot_dof.push_back(dof);
