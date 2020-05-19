@@ -24,7 +24,7 @@
  *
  * ============================================================ */
 
-#include "../../../include/cosima-controller/controller/rtt_joint_pd_controller.hpp"
+#include "../../include/cosima-controller/controller/rtt_joint_pd_controller.hpp"
 #include <rtt/Component.hpp> // needed for the macro at the end of this file
 
 #define PRELOG(X) (RTT::log(RTT::X) << "[" << this->getName() << "] ")

@@ -41,6 +41,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   sensor_msgs
+  trajectory_msgs
   # kdl_parser
 )
 
@@ -217,7 +218,8 @@ orocos_component(${CMAKE_PROJECT_NAME}
 
   ${PROJECT_SOURCE_DIR}/src/kinematics_dynamics/rtt_kin_dyn_multi_arm.cpp
 # Controller
-${PROJECT_SOURCE_DIR}/src/controller/gravity_compensation/rtt_joint_gravity_compensation.cpp
+  ${PROJECT_SOURCE_DIR}/src/controller/gravity_compensation/rtt_joint_gravity_compensation.cpp
+  ${PROJECT_SOURCE_DIR}/src/controller/rtt_joint_pd_controller.cpp
 ) # ...you may add multiple source files
 # set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS RTT_COMPONENT)
 target_link_libraries(${CMAKE_PROJECT_NAME} ${EIGEN3_LIBRARIES} ${OROCOS-RTT_LIBRARIES} ${USE_OROCOS_LIBRARIES} ${orocos_kdl_LIBRARIES} ${kdl_parser_LIBRARIES}
