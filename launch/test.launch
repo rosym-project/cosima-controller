@@ -1,4 +1,9 @@
-<launch>                                              
-   <node name="myNodeName" pkg="rtt_ros" type="deployer" launch-prefix="konsole -e" args=" -s $(find cosima-controller)/scripts/test.ops --">
-   </node>           
+<launch>   
+   <env name="PATH" value="/home/dwigand/citk/systems/cogimon-minimal-nightly/bin:/opt/ros/kinetic/bin:/home/dwigand/bin:/home/dwigand/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/lib/jvm/java-8-oracle/bin:/usr/lib/jvm/java-8-oracle/db/bin:/usr/lib/jvm/java-8-oracle/jre/bin" />
+   <env name="prefix" value="/home/dwigand/citk/systems" />
+   <env name="PKG_CONFIG_PATH" value="/home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/devel/lib/pkgconfig:/opt/ros/kinetic/lib/pkgconfig:/opt/ros/kinetic/lib/x86_64-linux-gnu/pkgconfig" />
+   <env name="OROCOS_TARGET" value="gnulinux" />
+   <env name="RTT_COMPONENT_PATH" value="/home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/devel/lib/orocos" />
+   <node name="deployer-test" pkg="rtt_ros" type="deployer" launch-prefix="konsole -e" args=" -s $(find cosima-controller)/scripts/test.ops --">
+   </node>
 </launch> 
