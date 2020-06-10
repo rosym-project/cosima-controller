@@ -1,4 +1,5 @@
-import("rtt-bullet-embedded")
+import("cosima-robot-sim")
+# import("rtt-bullet-embedded")
 # loadComponent("bullet","cosima::RTTBulletEmbedded")
 # setActivity("bullet",0.1,10,ORO_SCHED_OTHER)
 # bullet.connect()
@@ -9,11 +10,11 @@ import("cosima-controller")
 import("eigen_typekit_d")
 # import("kdl_typekit")
 
-loadComponent("bullet_robot","cosima::RTTBulletRobotManipulatorSim")
+loadComponent("bullet_robot","cosima::RTTRobotManipulatorSim")
 # Faster than 1Kz, because reality is always fast :D
 setActivity("bullet_robot",0.001,10,ORO_SCHED_OTHER)
 bullet_robot.connect()
-bullet_robot.spawnRobotAtPos("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", 0, 0, 0.07)
+bullet_robot.spawnRobotAtPos("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", 0, -0.2, 0.5)
 # bullet_robot.connectToExternallySpawnedRobot("kuka1", 1)
 bullet_robot.spawnRobotAtPos("kuka2", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", -1, -1, 0)
 bullet_robot.configure()
@@ -33,7 +34,7 @@ KinDyn.configure()
 var ConnPolicy cp;
 connect("bullet_robot.out_kuka1_jointstate_fdb","KinDyn.in_robotstatus_port",cp)
 
-bullet_robot.start()
+# bullet_robot.start()
 
 # import pybullet as p
 # client = p.connect(p.GUI_SERVER,1234)

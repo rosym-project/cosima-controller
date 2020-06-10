@@ -33,6 +33,8 @@ loadComponent("robot","cosima::RTTRobotManipulatorSim")
 setActivity("robot",0.001,10,ORO_SCHED_OTHER)
 robot.connectBullet()
 robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "bullet")
+robot.setBasePosition("kuka1", 0, -0.2, 0.5)
+robot.defineKinematicChain("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "world", "iiwa7_link_ee")
 robot.configure()
 
 loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")

@@ -32,7 +32,13 @@ import("eigen_typekit_d")
 loadComponent("robot","cosima::RTTRobotManipulatorSim")
 setActivity("robot",0.001,10,ORO_SCHED_OTHER)
 robot.connectBullet()
-robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "bullet")
+
+var eigen_vector pos = new eigen_vector(3)
+pos[0] = 0
+pos[1] = -0.2
+pos[2] = 0.5
+
+robot.spawnRobotAtPos("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", pos, "bullet")
 robot.configure()
 
 loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")

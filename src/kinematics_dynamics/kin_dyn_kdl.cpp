@@ -438,14 +438,12 @@ bool KinDynMultiArm_KDL::setChainWithWorldOffset(const std::string &chain_root_l
   {
     RTT::log(RTT::Error) << "Number of joints is not > 0. Please check the link names. Returning." << RTT::endlog();
     return false;
-    ;
   }
 
   if (_chain_selected_tmp.getNrOfSegments() <= 0)
   {
     RTT::log(RTT::Error) << "Number of segments is not > 0. Please check the link names. Returning." << RTT::endlog();
     return false;
-    ;
   }
 
   //////////////////////////////////////////////////
