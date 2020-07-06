@@ -76,7 +76,7 @@ public:
   bool setDOFsize(unsigned int DOFsize);
 
   // Compensation
-  void addTSgravitycompensation(bool addTSgravitycompensation);
+  void useTSgravitycompensation(bool useTSgravitycompensation);
   void addJSgravitycompensation(bool addJSgravitycompensation);
 
   // Gains
@@ -177,7 +177,7 @@ private:
   Eigen::VectorXd errorPosition, errorVelocity;
   Eigen::Vector3d desiredPosition, currentPosition, desiredVelocity, currentVelocity;
   Eigen::Vector4d desiredQuaternionPosition, currentQuaternionPosition;
-  bool add_TSgravitycompensation;
+  bool use_TSgravitycompensation;
   bool add_JSgravitycompensation;
   bool portsArePrepared;
   bool impedanceCTRL;

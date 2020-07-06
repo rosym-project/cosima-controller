@@ -24,6 +24,8 @@
  *
  * ============================================================ */
 
+// # https://studywolf.wordpress.com/2018/12/03/force-control-of-task-space-orientation/
+
 #include "../../include/cosima-controller/controller/rtt_cart_impedance_controller.hpp"
 #include <rtt/Component.hpp> // needed for the macro at the end of this file
 

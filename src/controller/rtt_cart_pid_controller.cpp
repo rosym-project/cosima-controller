@@ -37,7 +37,7 @@
 RTTCartPIDController::RTTCartPIDController(std::string const &name)
     : RTT::TaskContext(name)
 {
-    addOperation("addTSgravitycompensation", &RTTCartPIDController::addTSgravitycompensation, this).doc("add taskspace gravitycompensation");
+    addOperation("useTSgravitycompensation", &RTTCartPIDController::useTSgravitycompensation, this).doc("use taskspace gravitycompensation");
     addOperation("addJSgravitycompensation", &RTTCartPIDController::addJSgravitycompensation, this).doc("add jointspace gravitycompensation");
     addOperation("setGains", &RTTCartPIDController::setGains, this).doc("set gains");
     addOperation("setGainsOrientation", &RTTCartPIDController::setGainsOrientation, this).doc("set gains orientation");
@@ -96,7 +96,7 @@ RTTCartPIDController::RTTCartPIDController(std::string const &name)
     hold_current_position_last = false;
 
     portsArePrepared = false;
-    this->addTSgravitycompensation(true);
+    this->useTSgravitycompensation(true);
     this->addJSgravitycompensation(false);
 
     desiredPosition = Eigen::Vector3d::Zero();
@@ -786,12 +786,12 @@ void RTTCartPIDController::compute(
                 out_force.segment<6>(WorkspaceDimension * i) = lambda_[i] * in_desiredTaskSpaceAcceleration.segment<6>(WorkspaceDimension * i) + errorPosition.segment<6>(WorkspaceDimension * i) + errorVelocity.segment<6>(WorkspaceDimension * i);
             }
             // TODO TS Gravity included (verify if properly done!)
-            if (add_TSgravitycompensation)
+            if (use_TSgravitycompensation)
             {
                 out_force.segment<6>(WorkspaceDimension * i) += (lambda_[i] * in_jacobian.block(WorkspaceDimension * i, 0, 6, total_dof_size_) * in_inertiaInv * (in_projection * in_coriolisAndGravity - in_projectionDot * fdb_velocities)) - (lambda_[i] * in_jacobianDot.block(WorkspaceDimension * i, 0, 6, total_dof_size_) * fdb_velocities);
             }
 
-            // if (add_TSgravitycompensation)
+            // if (use_TSgravitycompensation)
             // {
             //     out_force += lambda * (in_jacobian * inertiaInvP * in_coriolisAndGravity) + lambda * (-in_jacobianDot - in_jacobian * in_inertiaInv * in_projectionDot) * fdb_velocities;
             // }
@@ -978,9 +978,9 @@ void RTTCartPIDController::compute(
 //     return true;
 // }
 
-void RTTCartPIDController::addTSgravitycompensation(bool addTSgravitycompensation)
+void RTTCartPIDController::useTSgravitycompensation(bool useTSgravitycompensation)
 {
-    this->add_TSgravitycompensation = addTSgravitycompensation;
+    this->use_TSgravitycompensation = useTSgravitycompensation;
 }
 
 void RTTCartPIDController::addJSgravitycompensation(bool addJSgravitycompensation)
@@ -1445,8 +1445,8 @@ void RTTCartPIDController::displayStatus()
     RTT::log(RTT::Error) << "in_currentTaskSpacePosition_var \n"
                          << in_currentTaskSpacePosition_var << RTT::endlog();
 
-    RTT::log(RTT::Error) << "add_TSgravitycompensation "
-                         << add_TSgravitycompensation << RTT::endlog();
+    RTT::log(RTT::Error) << "use_TSgravitycompensation "
+                         << use_TSgravitycompensation << RTT::endlog();
     RTT::log(RTT::Error) << "total_dof_size_ "
                          << total_dof_size_ << RTT::endlog();
 
