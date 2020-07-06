@@ -87,6 +87,13 @@ link_directories(/home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/devel/.private/
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIRS})
 
+find_package(yaml-cpp REQUIRED)
+message(STATUS "yaml-cpp version: ${YAML_CPP_VERSION}")
+message(STATUS "YAML_CPP_INCLUDE_DIR: ${YAML_CPP_INCLUDE_DIR}")
+message(STATUS "YAML_CPP_LIBRARIES: ${YAML_CPP_LIBRARIES}")
+include_directories(BEFORE SYSTEM ${YAML_CPP_INCLUDE_DIR})
+add_definitions(${YAML_CPP_CFLAGS})
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -220,9 +227,12 @@ orocos_component(${CMAKE_PROJECT_NAME}
 # Controller
   ${PROJECT_SOURCE_DIR}/src/controller/gravity_compensation/rtt_joint_gravity_compensation.cpp
   ${PROJECT_SOURCE_DIR}/src/controller/rtt_joint_pd_controller.cpp
+
+  # ${PROJECT_SOURCE_DIR}/src/controller/rtt_cart_impedance_controller.cpp
+  ${PROJECT_SOURCE_DIR}/src/controller/rtt_cart_pid_controller.cpp
 ) # ...you may add multiple source files
 # set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS RTT_COMPONENT)
-target_link_libraries(${CMAKE_PROJECT_NAME} ${EIGEN3_LIBRARIES} ${OROCOS-RTT_LIBRARIES} ${USE_OROCOS_LIBRARIES} ${orocos_kdl_LIBRARIES} ${kdl_parser_LIBRARIES}
+target_link_libraries(${CMAKE_PROJECT_NAME} ${EIGEN3_LIBRARIES} ${OROCOS-RTT_LIBRARIES} ${USE_OROCOS_LIBRARIES} ${orocos_kdl_LIBRARIES} ${kdl_parser_LIBRARIES} ${YAML_CPP_LIBRARIES}
 ${catkin_LIBRARIES}
 )
 
