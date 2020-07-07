@@ -77,7 +77,10 @@ public:
         Eigen::VectorXd &out_cartVel,
         Eigen::VectorXd &out_cartAcc,
         Eigen::MatrixXd &out_jacobian,
-        Eigen::MatrixXd &out_jacobianDot) = 0;
+        Eigen::MatrixXd &out_jacobianDot,
+        const Eigen::VectorXd &ext_coriolisAndGravity,
+        const Eigen::MatrixXd &ext_inertia,
+        bool override = false) = 0;
 
     virtual unsigned int getDoF() = 0;
 
