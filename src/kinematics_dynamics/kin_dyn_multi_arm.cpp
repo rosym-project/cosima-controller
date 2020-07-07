@@ -96,7 +96,10 @@ void KinDynMultiArm::computeAllAsStack(
     Eigen::VectorXd &out_cartVel,
     Eigen::VectorXd &out_cartAcc,
     Eigen::MatrixXd &out_jacobian,
-    Eigen::MatrixXd &out_jacobianDot)
+    Eigen::MatrixXd &out_jacobianDot,
+    const Eigen::VectorXd &ext_coriolisAndGravity,
+    const Eigen::MatrixXd &ext_inertia,
+    bool override)
 {
     ////////////////////////////////////////////
     ////// RETRIEVE INFORMATION AND STACK //////
@@ -129,7 +132,10 @@ void KinDynMultiArm::computeAllAsStack(
                                                        out_cartVel,
                                                        out_cartAcc,
                                                        out_jacobian,
-                                                       out_jacobianDot);
+                                                       out_jacobianDot,
+                                                       ext_coriolisAndGravity,
+                                                       ext_inertia,
+                                                       override);
         _accu_joint_num += _solver->getDoF();
     }
 }

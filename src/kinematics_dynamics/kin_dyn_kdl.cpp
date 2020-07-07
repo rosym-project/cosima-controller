@@ -74,7 +74,10 @@ void KinDynMultiArm_KDL::computeStackPart(const sensor_msgs::JointState &in_robo
                                           Eigen::VectorXd &out_cartVel,
                                           Eigen::VectorXd &out_cartAcc,
                                           Eigen::MatrixXd &out_jacobian,
-                                          Eigen::MatrixXd &out_jacobianDot)
+                                          Eigen::MatrixXd &out_jacobianDot,
+                                          const Eigen::VectorXd &ext_coriolisAndGravity,
+                                          const Eigen::MatrixXd &ext_inertia,
+                                          bool override)
 {
   this->solve(in_robotstatus);
 
@@ -83,12 +86,28 @@ void KinDynMultiArm_KDL::computeStackPart(const sensor_msgs::JointState &in_robo
   //////////////////////////////////
 
   unsigned int _js_dof = this->getDoF();
-  out_inertia.block(index_js, index_js, _js_dof, _js_dof) = this->M.data;
-  out_inertiaInv.block(index_js, index_js, _js_dof, _js_dof) = this->M.data.inverse();
 
-  out_gravity.segment(index_js, _js_dof) = this->g.data;
-  out_coriolis.segment(index_js, _js_dof) = this->c.data;
-  out_coriolisAndGravity.segment(index_js, _js_dof) = out_gravity + out_coriolis;
+  if (override)
+  {
+    RTT::log(RTT::Error) << "ext_inertia.block =\n" << ext_inertia.block(index_js, index_js, _js_dof, _js_dof) << RTT::endlog();
+    // Use externally provided data
+    out_inertia.block(index_js, index_js, _js_dof, _js_dof) = ext_inertia.block(index_js, index_js, _js_dof, _js_dof);
+    // TODO perhaps do something else, because I dunno if the inertia is always invertable
+    out_inertiaInv.block(index_js, index_js, _js_dof, _js_dof) = ext_inertia.block(index_js, index_js, _js_dof, _js_dof).inverse();
+    out_gravity.segment(index_js, _js_dof) = ext_coriolisAndGravity.segment(index_js, _js_dof);
+    // out_coriolis.segment(index_js, _js_dof) = this->c.data;
+    out_coriolis.segment(index_js, _js_dof).setZero();
+    out_coriolisAndGravity.segment(index_js, _js_dof) = ext_coriolisAndGravity.segment(index_js, _js_dof);
+  }
+  else
+  {  
+    out_inertia.block(index_js, index_js, _js_dof, _js_dof) = this->M.data;
+    out_inertiaInv.block(index_js, index_js, _js_dof, _js_dof) = this->M.data.inverse();
+
+    out_gravity.segment(index_js, _js_dof) = this->g.data;
+    out_coriolis.segment(index_js, _js_dof) = this->c.data;
+    out_coriolisAndGravity.segment(index_js, _js_dof) = out_gravity + out_coriolis;
+  }
 
   out_cartPos(index_ts_quat + 0) = this->cartPosFrame.p.x();
   out_cartPos(index_ts_quat + 1) = this->cartPosFrame.p.y();
