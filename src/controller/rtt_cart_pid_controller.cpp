@@ -34,6 +34,9 @@
 
 #include <rtt/Component.hpp> // needed for the macro at the end of this file
 
+using namespace cosima;
+using namespace controller;
+
 RTTCartPIDController::RTTCartPIDController(std::string const &name)
     : RTT::TaskContext(name)
 {
@@ -800,7 +803,7 @@ void RTTCartPIDController::compute(
     }
 
     // ########################################## DLW TEST COMPENSATION FOR GRASPED OBJECT
-    
+
     // torque in the un-constrained space
     if (add_JSgravitycompensation)
     {
@@ -1381,10 +1384,12 @@ void RTTCartPIDController::displayStatus()
 {
 
     std::string position;
-    for (const auto &piece : in_robotstatus_var.position) position += piece;
+    for (const auto &piece : in_robotstatus_var.position)
+        position += piece;
 
     std::string velocity;
-    for (const auto &piece : in_robotstatus_var.velocity) velocity += piece;
+    for (const auto &piece : in_robotstatus_var.velocity)
+        velocity += piece;
 
     std::cout << "############## RTTCartPIDController State begin " << std::endl;
     RTT::log(RTT::Error) << "in_robotstatus_var.angles \n"
@@ -1547,4 +1552,4 @@ void RTTCartPIDController::checkConnections()
 //ORO_CREATE_COMPONENT_LIBRARY()
 
 // This macro, as you can see, creates the component. Every component should have this!
-ORO_LIST_COMPONENT_TYPE(RTTCartPIDController)
+ORO_LIST_COMPONENT_TYPE(cosima::controller::RTTCartPIDController)

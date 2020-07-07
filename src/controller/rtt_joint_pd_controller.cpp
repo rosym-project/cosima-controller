@@ -196,12 +196,37 @@ void RTTJointPDCtrl::updateHook()
 
     double timeStep = this->getPeriod();
 
+    // Eigen::VectorXd fdb_positions = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.position.data(), in_robotstatus_var.position.size());
+    // Eigen::VectorXd fdb_velocities = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.velocity.data(), in_robotstatus_var.velocity.size());
+    // Eigen::VectorXd cmd_positions = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(this->in_joint_cmd_var.positions.data(), this->in_joint_cmd_var.positions.size());
+    // Eigen::VectorXd cmd_velocities = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(this->in_joint_cmd_var.velocities.data(), this->in_joint_cmd_var.velocities.size());
+
     for (unsigned int i = 0; i < this->total_dof_size; i++)
     {
         qError(i) = this->in_joint_cmd_var.positions[i] - in_robotstatus_var.position[i];
         qdError(i) = this->in_joint_cmd_var.velocities[i] - in_robotstatus_var.velocity[i];
     }
 
+    // for (unsigned int i = 0; i < this->total_dof_size; i++)
+    // {
+    //     PRELOG(Error) << "this->in_joint_cmd_var.positions["<<i<<"]: " << this->in_joint_cmd_var.positions[i] << RTT::endlog();
+    // }
+
+    // for (unsigned int i = 0; i < this->total_dof_size; i++)
+    // {
+    //     PRELOG(Error) << "this->in_joint_cmd_var.velocities["<<i<<"]: " << this->in_joint_cmd_var.velocities[i] << RTT::endlog();
+    // }
+
+    // for (unsigned int i = 0; i < this->total_dof_size; i++)
+    // {
+    //     PRELOG(Error) << "in_robotstatus_var.position["<<i<<"]: " << in_robotstatus_var.position[i] << RTT::endlog();
+    // }
+
+    // for (unsigned int i = 0; i < this->total_dof_size; i++)
+    // {
+    //     PRELOG(Error) << "in_robotstatus_var.velocity["<<i<<"]: " << in_robotstatus_var.velocity[i] << RTT::endlog();
+    // }
+    
     Eigen::MatrixXd Kd = (kd * Eigen::VectorXd::Ones(qError.size())).asDiagonal();
 
     Eigen::VectorXd p = ((kp * Eigen::VectorXd::Ones(qError.size())).asDiagonal()) * qError.matrix();
@@ -212,9 +237,14 @@ void RTTJointPDCtrl::updateHook()
     // https://eigen.tuxfamily.org/dox-devel/group__TopicLinearAlgebraDecompositions.html
     // https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
     // qddot = np.linalg.solve(A, b)
-    Eigen::VectorXd qddot = M.colPivHouseholderQr().solve(b);
+    Eigen::VectorXd qddot = M.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
+    // TODO I have to check if there is a proper solution to prevent jumps apparently?!
+    // Eigen::VectorXd qddot = M.inverse() * b; // Not really an option :D
+
     // tau = p + d - Kd.dot(qddot) * timeStep
     out_torques_var += p + d - (Kd * qddot) * timeStep;
+
+    // out_torques_var = kp * (cmd_positions - fdb_positions) - kd * fdb_velocities + in_coriolisAndGravity_var;
 
     out_torques_port.write(out_torques_var);
 }

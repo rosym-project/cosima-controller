@@ -45,170 +45,179 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
-class RTTCartPIDController : public RTT::TaskContext
+namespace cosima
 {
-public:
-  RTTCartPIDController(std::string const &name);
 
-  bool configureHook();
-  bool startHook();
-  void updateHook();
-  void stopHook();
-  void cleanupHook();
+  namespace controller
+  {
+    class RTTCartPIDController : public RTT::TaskContext
+    {
+    public:
+      RTTCartPIDController(std::string const &name);
 
-  bool loadYAMLConfig(const std::string &myname, const std::string &file);
+      bool configureHook();
+      bool startHook();
+      void updateHook();
+      void stopHook();
+      void cleanupHook();
 
-  void compute(
-      Eigen::VectorXd &in_desiredTaskSpacePosition,
-      Eigen::VectorXd &in_desiredTaskSpaceVelocity,
-      Eigen::VectorXd &in_desiredTaskSpaceAcceleration,
-      Eigen::VectorXd &in_currentTaskSpacePosition,
-      Eigen::VectorXd &in_currentTaskSpaceVelocity,
-      sensor_msgs::JointState &in_robotstatus,
-      Eigen::MatrixXd &in_jacobian,
-      Eigen::MatrixXd &in_jacobianDot,
-      Eigen::VectorXd &in_h,
-      Eigen::MatrixXd &in_inertiaInv,
-      Eigen::MatrixXd &in_projection,
-      Eigen::MatrixXd &in_projectionDot,
-      Eigen::VectorXd &out_torques,
-      Eigen::VectorXd &out_force);
-  bool setDOFsize(unsigned int DOFsize);
+      bool loadYAMLConfig(const std::string &myname, const std::string &file);
 
-  // Compensation
-  void useTSgravitycompensation(bool useTSgravitycompensation);
-  void addJSgravitycompensation(bool addJSgravitycompensation);
+      void compute(
+          Eigen::VectorXd &in_desiredTaskSpacePosition,
+          Eigen::VectorXd &in_desiredTaskSpaceVelocity,
+          Eigen::VectorXd &in_desiredTaskSpaceAcceleration,
+          Eigen::VectorXd &in_currentTaskSpacePosition,
+          Eigen::VectorXd &in_currentTaskSpaceVelocity,
+          sensor_msgs::JointState &in_robotstatus,
+          Eigen::MatrixXd &in_jacobian,
+          Eigen::MatrixXd &in_jacobianDot,
+          Eigen::VectorXd &in_h,
+          Eigen::MatrixXd &in_inertiaInv,
+          Eigen::MatrixXd &in_projection,
+          Eigen::MatrixXd &in_projectionDot,
+          Eigen::VectorXd &out_torques,
+          Eigen::VectorXd &out_force);
+      bool setDOFsize(unsigned int DOFsize);
 
-  // Gains
-  bool setGains(double kp, double kd);
-  bool setGainsOrientation(double kp, double kd);
-  bool setGainsBatch(const Eigen::VectorXd &kps, const Eigen::VectorXd &kds);
-  bool setGainsOrientationBatch(const Eigen::VectorXd &kps, const Eigen::VectorXd &kds);
-  bool setGainsForEE(double kp, double kd, unsigned int index);
-  bool setGainsOrientationForEE(double kp, double kd, unsigned int index);
-  bool setGainsSingleForEE(double kp, double kd, unsigned int index, unsigned int dir);
-  bool setGainsOrientationSingleForEE(double kp, double kd, unsigned int index, unsigned int dir);
+      // Compensation
+      void useTSgravitycompensation(bool useTSgravitycompensation);
+      void addJSgravitycompensation(bool addJSgravitycompensation);
 
-  void computeTranslationError(
-      Eigen::Vector3d const &cart_desiredPosition,
-      Eigen::Vector3d const &cart_currentPosition,
-      Eigen::Vector3d const &desiredVelocity,
-      Eigen::Vector3d const &cart_cart_currentVelocity,
-      Eigen::Vector3d &cart_errorPosition,
-      Eigen::Vector3d &cart_errorVelocity);
-  void computeOrientationError(
-      Eigen::Vector4d const &quaternion_desired,
-      Eigen::Vector4d const &quaternion_current,
-      Eigen::Vector3d const &axisangle_desiredVelocity,
-      Eigen::Vector3d const &axisangle_currentVelocity,
-      Eigen::Vector3d &axisangle_errorPosition,
-      Eigen::Vector3d &axisangle_errorVelocity);
+      // Gains
+      bool setGains(double kp, double kd);
+      bool setGainsOrientation(double kp, double kd);
+      bool setGainsBatch(const Eigen::VectorXd &kps, const Eigen::VectorXd &kds);
+      bool setGainsOrientationBatch(const Eigen::VectorXd &kps, const Eigen::VectorXd &kds);
+      bool setGainsForEE(double kp, double kd, unsigned int index);
+      bool setGainsOrientationForEE(double kp, double kd, unsigned int index);
+      bool setGainsSingleForEE(double kp, double kd, unsigned int index, unsigned int dir);
+      bool setGainsOrientationSingleForEE(double kp, double kd, unsigned int index, unsigned int dir);
 
-  void preparePorts();
-  void displayStatus();
-  void checkConnections();
+      void computeTranslationError(
+          Eigen::Vector3d const &cart_desiredPosition,
+          Eigen::Vector3d const &cart_currentPosition,
+          Eigen::Vector3d const &desiredVelocity,
+          Eigen::Vector3d const &cart_cart_currentVelocity,
+          Eigen::Vector3d &cart_errorPosition,
+          Eigen::Vector3d &cart_errorVelocity);
+      void computeOrientationError(
+          Eigen::Vector4d const &quaternion_desired,
+          Eigen::Vector4d const &quaternion_current,
+          Eigen::Vector3d const &axisangle_desiredVelocity,
+          Eigen::Vector3d const &axisangle_currentVelocity,
+          Eigen::Vector3d &axisangle_errorPosition,
+          Eigen::Vector3d &axisangle_errorVelocity);
 
-  void setNoCommandReceivedBehavior(std::string const &type);
+      void preparePorts();
+      void displayStatus();
+      void checkConnections();
 
-  // void calculateNullspace();
+      void setNoCommandReceivedBehavior(std::string const &type);
 
-  /////////////////////////////////
+      // void calculateNullspace();
 
-  void addRobot(unsigned int task_dof, unsigned int joint_dof);
-  void calculateTotalDofs();
+      /////////////////////////////////
 
-private:
-  // void setNS(const Eigen::VectorXd &nsp);
+      void addRobot(unsigned int task_dof, unsigned int joint_dof);
+      void calculateTotalDofs();
 
-  // Declare input ports and their datatypes
-  RTT::InputPort<Eigen::VectorXd> in_desiredTaskSpacePosition_port;
-  RTT::InputPort<Eigen::VectorXd> in_desiredTaskSpaceVelocity_port;
-  RTT::InputPort<Eigen::VectorXd> in_desiredTaskSpaceAcceleration_port;
+    private:
+      // void setNS(const Eigen::VectorXd &nsp);
 
-  RTT::InputPort<Eigen::VectorXd> in_currentTaskSpacePosition_port;
-  RTT::InputPort<Eigen::VectorXd> in_currentTaskSpaceVelocity_port;
+      // Declare input ports and their datatypes
+      RTT::InputPort<Eigen::VectorXd> in_desiredTaskSpacePosition_port;
+      RTT::InputPort<Eigen::VectorXd> in_desiredTaskSpaceVelocity_port;
+      RTT::InputPort<Eigen::VectorXd> in_desiredTaskSpaceAcceleration_port;
 
-  RTT::InputPort<sensor_msgs::JointState> in_robotstatus_port;
+      RTT::InputPort<Eigen::VectorXd> in_currentTaskSpacePosition_port;
+      RTT::InputPort<Eigen::VectorXd> in_currentTaskSpaceVelocity_port;
 
-  RTT::InputPort<Eigen::MatrixXd> in_jacobian_port;
-  RTT::InputPort<Eigen::MatrixXd> in_jacobianDot_port;
-  RTT::InputPort<Eigen::VectorXd> in_coriolisAndGravity_port;
-  RTT::InputPort<Eigen::MatrixXd> in_inertia_port;
-  RTT::InputPort<Eigen::MatrixXd> in_projection_port;
-  RTT::InputPort<Eigen::MatrixXd> in_projectionDot_port;
+      RTT::InputPort<sensor_msgs::JointState> in_robotstatus_port;
 
-  // Declare output ports and their datatypes
-  RTT::OutputPort<Eigen::VectorXd> out_torques_port;
-  RTT::OutputPort<Eigen::VectorXd> out_force_port;
-  RTT::OutputPort<Eigen::VectorXd> out_error_position_port;
-  RTT::OutputPort<Eigen::VectorXd> out_error_velocity_port;
+      RTT::InputPort<Eigen::MatrixXd> in_jacobian_port;
+      RTT::InputPort<Eigen::MatrixXd> in_jacobianDot_port;
+      RTT::InputPort<Eigen::VectorXd> in_coriolisAndGravity_port;
+      RTT::InputPort<Eigen::MatrixXd> in_inertia_port;
+      RTT::InputPort<Eigen::MatrixXd> in_projection_port;
+      RTT::InputPort<Eigen::MatrixXd> in_projectionDot_port;
 
-  // Data flow:
-  RTT::FlowStatus in_desiredTaskSpacePosition_flow;
-  RTT::FlowStatus in_desiredTaskSpaceVelocity_flow;
-  RTT::FlowStatus in_desiredTaskSpaceAcceleration_flow;
-  RTT::FlowStatus in_currentTaskSpacePosition_flow;
-  RTT::FlowStatus in_currentTaskSpaceVelocity_flow;
-  RTT::FlowStatus in_robotstatus_flow;
-  RTT::FlowStatus in_jacobian_flow;
-  RTT::FlowStatus in_jacobianDot_flow;
-  RTT::FlowStatus in_coriolisAndGravity_flow;
-  RTT::FlowStatus in_inertia_flow;
-  RTT::FlowStatus in_projection_flow;
-  RTT::FlowStatus in_projectionDot_flow;
+      // Declare output ports and their datatypes
+      RTT::OutputPort<Eigen::VectorXd> out_torques_port;
+      RTT::OutputPort<Eigen::VectorXd> out_force_port;
+      RTT::OutputPort<Eigen::VectorXd> out_error_position_port;
+      RTT::OutputPort<Eigen::VectorXd> out_error_velocity_port;
 
-  Eigen::VectorXd in_desiredTaskSpacePosition_var;
-  Eigen::VectorXd in_desiredTaskSpaceVelocity_var;
-  Eigen::VectorXd in_desiredTaskSpaceAcceleration_var;
-  Eigen::VectorXd in_currentTaskSpacePosition_var;
-  Eigen::VectorXd in_currentTaskSpaceVelocity_var;
-  sensor_msgs::JointState in_robotstatus_var;
-  Eigen::MatrixXd in_jacobian_var;
-  Eigen::MatrixXd in_jacobianDot_var;
-  Eigen::VectorXd in_coriolisAndGravity_var;
-  Eigen::MatrixXd in_inertia_var;
-  Eigen::MatrixXd in_projection_var;
-  Eigen::MatrixXd in_projectionDot_var;
-  Eigen::VectorXd out_torques_var;
-  Eigen::VectorXd out_force_var;
+      // Data flow:
+      RTT::FlowStatus in_desiredTaskSpacePosition_flow;
+      RTT::FlowStatus in_desiredTaskSpaceVelocity_flow;
+      RTT::FlowStatus in_desiredTaskSpaceAcceleration_flow;
+      RTT::FlowStatus in_currentTaskSpacePosition_flow;
+      RTT::FlowStatus in_currentTaskSpaceVelocity_flow;
+      RTT::FlowStatus in_robotstatus_flow;
+      RTT::FlowStatus in_jacobian_flow;
+      RTT::FlowStatus in_jacobianDot_flow;
+      RTT::FlowStatus in_coriolisAndGravity_flow;
+      RTT::FlowStatus in_inertia_flow;
+      RTT::FlowStatus in_projection_flow;
+      RTT::FlowStatus in_projectionDot_flow;
 
-  Eigen::Vector3d errorTranslationPosition, errorTranslationVelocity;
-  Eigen::Vector3d errorOrientationPosition, errorOrientationVelocity;
-  Eigen::VectorXd errorPosition, errorVelocity;
-  Eigen::Vector3d desiredPosition, currentPosition, desiredVelocity, currentVelocity;
-  Eigen::Vector4d desiredQuaternionPosition, currentQuaternionPosition;
-  bool use_TSgravitycompensation;
-  bool add_JSgravitycompensation;
-  bool portsArePrepared;
-  bool impedanceCTRL;
-  Eigen::MatrixXd inertiaInvP;
+      Eigen::VectorXd in_desiredTaskSpacePosition_var;
+      Eigen::VectorXd in_desiredTaskSpaceVelocity_var;
+      Eigen::VectorXd in_desiredTaskSpaceAcceleration_var;
+      Eigen::VectorXd in_currentTaskSpacePosition_var;
+      Eigen::VectorXd in_currentTaskSpaceVelocity_var;
+      sensor_msgs::JointState in_robotstatus_var;
+      Eigen::MatrixXd in_jacobian_var;
+      Eigen::MatrixXd in_jacobianDot_var;
+      Eigen::VectorXd in_coriolisAndGravity_var;
+      Eigen::MatrixXd in_inertia_var;
+      Eigen::MatrixXd in_projection_var;
+      Eigen::MatrixXd in_projectionDot_var;
+      Eigen::VectorXd out_torques_var;
+      Eigen::VectorXd out_force_var;
 
-  // int nullspaceMethod;
-  // rstrt::kinematics::JointAngles nullspace_configuration_var;
-  // Eigen::MatrixXd nullspace;
+      Eigen::Vector3d errorTranslationPosition, errorTranslationVelocity;
+      Eigen::Vector3d errorOrientationPosition, errorOrientationVelocity;
+      Eigen::VectorXd errorPosition, errorVelocity;
+      Eigen::Vector3d desiredPosition, currentPosition, desiredVelocity, currentVelocity;
+      Eigen::Vector4d desiredQuaternionPosition, currentQuaternionPosition;
+      bool use_TSgravitycompensation;
+      bool add_JSgravitycompensation;
+      bool portsArePrepared;
+      bool impedanceCTRL;
+      Eigen::MatrixXd inertiaInvP;
 
-  bool hold_current_position, hold_current_position_last;
+      // int nullspaceMethod;
+      // rstrt::kinematics::JointAngles nullspace_configuration_var;
+      // Eigen::MatrixXd nullspace;
 
-  int noCommandReceivedBehaviorType;
+      bool hold_current_position, hold_current_position_last;
 
-  bool lockOrientation;
+      int noCommandReceivedBehaviorType;
 
-  std::vector<Eigen::MatrixXd> lambda_;
-  std::vector<Eigen::JacobiSVD<Eigen::MatrixXd>> svd_solver_lambda_c_;
-  std::vector<Eigen::JacobiSVD<Eigen::MatrixXd>::SingularValuesType> singular_values_lambda_c_;
+      bool lockOrientation;
 
-  Eigen::MatrixXd lambda_global_;
-  Eigen::JacobiSVD<Eigen::MatrixXd> svd_solver_lambda_c_global_;
-  Eigen::JacobiSVD<Eigen::MatrixXd>::SingularValuesType singular_values_lambda_c_global_;
+      std::vector<Eigen::MatrixXd> lambda_;
+      std::vector<Eigen::JacobiSVD<Eigen::MatrixXd>> svd_solver_lambda_c_;
+      std::vector<Eigen::JacobiSVD<Eigen::MatrixXd>::SingularValuesType> singular_values_lambda_c_;
 
-  // Adaption for generic control
-  // unsigned int numEndEffectors, numObjects;
-  unsigned int WorkspaceDimension, WorkspaceQuaternionDimension;
-  unsigned int TaskSpaceDimension, TaskSpaceQuaternionDimension;
-  std::vector<Eigen::VectorXd> gainTranslationP_, gainTranslationD_, gainOrientationP_, gainOrientationD_;
-  Eigen::VectorXd in_desiredTaskSpacePosition_proxy;
+      Eigen::MatrixXd lambda_global_;
+      Eigen::JacobiSVD<Eigen::MatrixXd> svd_solver_lambda_c_global_;
+      Eigen::JacobiSVD<Eigen::MatrixXd>::SingularValuesType singular_values_lambda_c_global_;
 
-  //////////////////////////////////////
-  std::vector<std::pair<unsigned int, unsigned int>> vec_dimensions_;
-  unsigned int total_dof_size_;
-};
+      // Adaption for generic control
+      // unsigned int numEndEffectors, numObjects;
+      unsigned int WorkspaceDimension, WorkspaceQuaternionDimension;
+      unsigned int TaskSpaceDimension, TaskSpaceQuaternionDimension;
+      std::vector<Eigen::VectorXd> gainTranslationP_, gainTranslationD_, gainOrientationP_, gainOrientationD_;
+      Eigen::VectorXd in_desiredTaskSpacePosition_proxy;
+
+      //////////////////////////////////////
+      std::vector<std::pair<unsigned int, unsigned int>> vec_dimensions_;
+      unsigned int total_dof_size_;
+    };
+
+  } // namespace controller
+
+} // namespace cosima
