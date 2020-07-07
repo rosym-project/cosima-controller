@@ -62,21 +62,43 @@ bool RTTKinDynMultiArm::startHook()
 void RTTKinDynMultiArm::updateHook()
 {
     // read all the information that we need for the computations
-    in_robotstatus_flow = in_robotstatus_port.read(in_robotstatus_var);
 
+    bool no_data_received = false;
     for (unsigned int arms = 0; arms < this->num_robots; arms++)
     {
         if (in_external_gravity_ports[arms]->connected())
         {
             in_external_gravity_flows[arms] = in_external_gravity_ports[arms]->read(in_external_gravity_vars[arms]);
         }
+
+        in_robotstatus_flows[arms] = in_robotstatus_ports[arms]->read(in_robotstatus_vars[arms]);
+        unsigned int e_index_begin = 0;
+        if (arms > 0)
+        {
+            e_index_begin = this->solver_manager.getJointDofs(arms - 1);
+        }
+        unsigned int e_index_end = this->solver_manager.getJointDofs(arms);
+        sensor_msgs::JointState _tmp_j_state = in_robotstatus_vars[arms];
+        for (unsigned int entry_index = 0; entry_index < e_index_end; entry_index++)
+        {
+            in_robotstatus_var_stacked.position[entry_index + e_index_begin] = _tmp_j_state.position[entry_index];
+            in_robotstatus_var_stacked.velocity[entry_index + e_index_begin] = _tmp_j_state.velocity[entry_index];
+            in_robotstatus_var_stacked.effort[entry_index + e_index_begin] = _tmp_j_state.effort[entry_index];
+        }
+
+        if (in_robotstatus_flows[arms] == RTT::NoData)
+        {
+            no_data_received = true;
+            // break;
+        }
     }
 
     // you can handle cases when there is no new data.
-    if (in_robotstatus_flow != RTT::NoData)
+    // if (in_robotstatus_flow != RTT::NoData)
+    if (!no_data_received)
     {
         this->solver_manager.computeAllAsStack(
-            in_robotstatus_var,
+            in_robotstatus_var_stacked,
             out_inertia_var,
             out_inertiaInv_var,
             out_gravity_var,
@@ -107,7 +129,7 @@ void RTTKinDynMultiArm::updateHook()
             out_cartVel_vars[arm].angular.z = out_cartVel_var((arm * 6) + 5);
         }
 
-        out_robotstatus_var = in_robotstatus_var;
+        out_robotstatus_var = in_robotstatus_var_stacked;
     }
     else // if (in_robotstatus_flow == RTT::NoData)
     {
@@ -130,7 +152,7 @@ void RTTKinDynMultiArm::updateHook()
         out_jacobianDot_var.setZero();
     }
     
-    PRELOG(Error) << "KIN 2 out_coriolisAndGravity_var = " << out_coriolisAndGravity_var << RTT::endlog();
+    // PRELOG(Error) << "DEBUG: KIN 2 out_coriolisAndGravity_var = " << out_coriolisAndGravity_var << RTT::endlog();
 
     // Write the data through the ports!
     out_robotstatus_port.write(out_robotstatus_var);
@@ -197,28 +219,22 @@ void RTTKinDynMultiArm::preparePorts()
         }
     }
 
-    //prepare input
-    in_robotstatus_var = sensor_msgs::JointState();
+    // prepare input
+    in_robotstatus_var_stacked = sensor_msgs::JointState();
     out_robotstatus_var = sensor_msgs::JointState();
-
     unsigned int _total_dofs = this->solver_manager.getTotalNumberJointDofs();
-
     for (unsigned int i = 0; i < _total_dofs; i++)
     {
-        in_robotstatus_var.position.push_back(0.0);
-        in_robotstatus_var.velocity.push_back(0.0);
-        in_robotstatus_var.effort.push_back(0.0);
+        in_robotstatus_var_stacked.position.push_back(0.0);
+        in_robotstatus_var_stacked.velocity.push_back(0.0);
+        in_robotstatus_var_stacked.effort.push_back(0.0);
 
         out_robotstatus_var.position.push_back(0.0);
         out_robotstatus_var.velocity.push_back(0.0);
         out_robotstatus_var.effort.push_back(0.0);
     }
-    in_robotstatus_port.setName("in_robotstatus_port");
-    in_robotstatus_port.doc("Input port for robotstatus values");
-    ports()->addPort(in_robotstatus_port);
-    in_robotstatus_flow = RTT::NoData;
 
-    //prepare output
+    // prepare output
     out_robotstatus_port.setName("out_robotstatus_port");
     out_robotstatus_port.doc("Output port for robotstatus values");
     out_robotstatus_port.setDataSample(out_robotstatus_var);
@@ -296,6 +312,21 @@ void RTTKinDynMultiArm::preparePorts()
 
     for (int i = 0; i < this->solver_manager.getNumberOfRobots(); i++)
     {
+        sensor_msgs::JointState _tmp_robotstatus;
+        for (int jjj = 0; jjj < this->solver_manager.getJointDofs(i); jjj++)
+        {
+            _tmp_robotstatus.position.push_back(0.0);
+            _tmp_robotstatus.velocity.push_back(0.0);
+            _tmp_robotstatus.effort.push_back(0.0);
+        }
+        in_robotstatus_vars.push_back(_tmp_robotstatus);
+
+        in_robotstatus_ports.push_back(std::unique_ptr<RTT::InputPort<sensor_msgs::JointState>>(new RTT::InputPort<sensor_msgs::JointState>));
+        in_robotstatus_flows.push_back(RTT::NoData);
+        in_robotstatus_ports.at(i)->setName("in_robotstatus_" + std::to_string(i) + "_port");
+        in_robotstatus_ports.at(i)->doc("Input port for receiving the robot feedback.");
+        ports()->addPort(*(in_robotstatus_ports.at(i).get()));
+
         geometry_msgs::Pose _tmp_pose;
         _tmp_pose.position.x = 0.0;
         _tmp_pose.position.y = 0.0;
@@ -327,12 +358,21 @@ void RTTKinDynMultiArm::preparePorts()
         out_cartVel_ports.at(i)->setDataSample(_tmp_twist);
         ports()->addPort(*(out_cartVel_ports.at(i).get()));
 
+        // TODO include input below
+
         in_external_gravity_ports.push_back(std::unique_ptr<RTT::InputPort<Eigen::VectorXd>>(new RTT::InputPort<Eigen::VectorXd>));
         in_external_gravity_flows.push_back(RTT::NoData);
         in_external_gravity_vars.push_back(Eigen::VectorXd::Zero(_total_dofs / this->solver_manager.getNumberOfRobots())); // TODO make this variable for the added chain.
         in_external_gravity_ports.at(i)->setName("in_external_gravity_" + std::to_string(i) + "_port");
         in_external_gravity_ports.at(i)->doc("Input port for receiving an external G vector.");
         ports()->addPort(*(in_external_gravity_ports.at(i).get()));
+
+        // in_inertia_ports.push_back(std::unique_ptr<RTT::InputPort<Eigen::MatrixXd>>(new RTT::InputPort<Eigen::MatrixXd>));
+        // in_inertia_flows.push_back(RTT::NoData);
+        // in_inertia_vars.push_back(Eigen::MatrixXd::Zero(_total_dofs / this->solver_manager.getNumberOfRobots(), _total_dofs / this->solver_manager.getNumberOfRobots())); // TODO make this variable for the added chain.
+        // in_inertia_ports.at(i)->setName("in_inertia_" + std::to_string(i) + "_port");
+        // in_inertia_ports.at(i)->doc("Input port for receiving an external inertia matrix.");
+        // ports()->addPort(*(in_inertia_ports.at(i).get()));
     }
 
     this->portsArePrepared = true;

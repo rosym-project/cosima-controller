@@ -72,11 +72,17 @@ namespace cosima
     unsigned int num_robots;
 
     // Declare input ports and their datatypes
-    RTT::InputPort<sensor_msgs::JointState> in_robotstatus_port;
+
     // include gravity port to receive it from the defined chains
+    std::vector<std::unique_ptr<RTT::InputPort<sensor_msgs::JointState>>> in_robotstatus_ports;
+    std::vector<sensor_msgs::JointState> in_robotstatus_vars;
+    std::vector<RTT::FlowStatus> in_robotstatus_flows;
     std::vector<std::unique_ptr<RTT::InputPort<Eigen::VectorXd>>> in_external_gravity_ports;
     std::vector<Eigen::VectorXd> in_external_gravity_vars;
     std::vector<RTT::FlowStatus> in_external_gravity_flows;
+    // std::vector<std::unique_ptr<RTT::InputPort<Eigen::MatrixXd>>> in_inertia_ports;
+    // std::vector<Eigen::MatrixXd> in_inertia_vars;
+    // std::vector<RTT::FlowStatus> in_inertia_flows;
 
     // Declare output ports and their datatypes
     RTT::OutputPort<sensor_msgs::JointState> out_robotstatus_port;
@@ -92,10 +98,9 @@ namespace cosima
     RTT::OutputPort<Eigen::MatrixXd> out_jacobianDot_port;
 
     // Data flow:
-    RTT::FlowStatus in_robotstatus_flow;
 
     // variables
-    sensor_msgs::JointState in_robotstatus_var;
+    sensor_msgs::JointState in_robotstatus_var_stacked;
     sensor_msgs::JointState out_robotstatus_var;
     Eigen::MatrixXd out_inertia_var;
     Eigen::MatrixXd out_inertiaInv_var;
@@ -107,6 +112,7 @@ namespace cosima
     Eigen::VectorXd out_cartAcc_var;
     Eigen::MatrixXd out_jacobian_var;
     Eigen::MatrixXd out_jacobianDot_var;
+
     // unsigned int DOFsize, DOFsizeActive;
     bool portsArePrepared;
     // unsigned int numRobotArms, numObjects;
