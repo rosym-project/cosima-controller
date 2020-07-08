@@ -89,7 +89,6 @@ void KinDynMultiArm_KDL::computeStackPart(const sensor_msgs::JointState &in_robo
 
   if (override)
   {
-    RTT::log(RTT::Error) << "ext_inertia.block =\n" << ext_inertia.block(index_js, index_js, _js_dof, _js_dof) << RTT::endlog();
     // Use externally provided data
     out_inertia.block(index_js, index_js, _js_dof, _js_dof) = ext_inertia.block(index_js, index_js, _js_dof, _js_dof);
     // TODO perhaps do something else, because I dunno if the inertia is always invertable

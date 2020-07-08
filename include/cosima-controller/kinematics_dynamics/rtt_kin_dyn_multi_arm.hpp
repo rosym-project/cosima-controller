@@ -100,7 +100,6 @@ namespace cosima
     // Data flow:
 
     // variables
-    sensor_msgs::JointState in_robotstatus_var_stacked;
     Eigen::VectorXd in_external_gravity_var_stacked;
     Eigen::MatrixXd in_inertia_var_stacked;
     sensor_msgs::JointState out_robotstatus_var;

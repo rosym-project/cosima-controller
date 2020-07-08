@@ -85,20 +85,31 @@ void RTTKinDynMultiArm::updateHook()
         if (in_inertia_ports[arms]->connected())
         {
             in_inertia_flows[arms] = in_inertia_ports[arms]->read(in_inertia_vars[arms]);
-            RTT::log(RTT::Error) << "in_inertia_vars[arms] =\n" << in_inertia_vars[arms] << RTT::endlog();
+            // RTT::log(RTT::Error) << "in_inertia_vars[arms] =\n" << in_inertia_vars[arms] << RTT::endlog();
             in_inertia_var_stacked.block(e_index_begin, e_index_begin, e_index_end, e_index_end) = in_inertia_vars[arms];
         }
-        RTT::log(RTT::Error) << "in_inertia_var_stacked =\n" << in_inertia_var_stacked << RTT::endlog();
+        // RTT::log(RTT::Error) << "in_inertia_var_stacked =\n" << in_inertia_var_stacked << RTT::endlog();
 
         // Take care of externally provided robot state
         in_robotstatus_flows[arms] = in_robotstatus_ports[arms]->read(in_robotstatus_vars[arms]);
         sensor_msgs::JointState _tmp_j_state = in_robotstatus_vars[arms];
+
         for (unsigned int entry_index = 0; entry_index < e_index_end; entry_index++)
         {
-            in_robotstatus_var_stacked.position[entry_index + e_index_begin] = _tmp_j_state.position[entry_index];
-            in_robotstatus_var_stacked.velocity[entry_index + e_index_begin] = _tmp_j_state.velocity[entry_index];
-            in_robotstatus_var_stacked.effort[entry_index + e_index_begin] = _tmp_j_state.effort[entry_index];
+            out_robotstatus_var.position[entry_index + e_index_begin] = _tmp_j_state.position[entry_index];
+            out_robotstatus_var.velocity[entry_index + e_index_begin] = _tmp_j_state.velocity[entry_index];
+            out_robotstatus_var.effort[entry_index + e_index_begin] = _tmp_j_state.effort[entry_index];
         }
+
+        // for (unsigned int lll = 0; lll < out_robotstatus_var.position.size(); lll++)
+        // {
+        //     RTT::log(RTT::Error) << "out_robotstatus_var.position[" << lll << "] = " << out_robotstatus_var.position[lll] << RTT::endlog();
+        // }
+
+        // for (unsigned int lll = 0; lll < _tmp_j_state.position.size(); lll++)
+        // {
+        //     RTT::log(RTT::Error) << "_tmp_j_state.position[" << lll << "] = " << _tmp_j_state.position[lll] << RTT::endlog();
+        // }
 
         if ((in_external_gravity_flows[arms] == RTT::NoData) || (in_inertia_flows[arms] == RTT::NoData))
         {
@@ -117,7 +128,7 @@ void RTTKinDynMultiArm::updateHook()
     if (!no_data_received)
     {
         this->solver_manager.computeAllAsStack(
-            in_robotstatus_var_stacked,
+            out_robotstatus_var,
             out_inertia_var,
             out_inertiaInv_var,
             out_gravity_var,
@@ -132,7 +143,7 @@ void RTTKinDynMultiArm::updateHook()
             in_inertia_var_stacked,
             override);
 
-        RTT::log(RTT::Error) << "out_inertia_var =\n" << out_inertia_var << RTT::endlog();
+        // RTT::log(RTT::Error) << "out_inertia_var =\n" << out_inertia_var << RTT::endlog();
 
         // separate cart pos and vel for publishing
         for (unsigned int arm = 0; arm < this->num_robots; arm++)
@@ -152,8 +163,6 @@ void RTTKinDynMultiArm::updateHook()
             out_cartVel_vars[arm].angular.y = out_cartVel_var((arm * 6) + 4);
             out_cartVel_vars[arm].angular.z = out_cartVel_var((arm * 6) + 5);
         }
-
-        out_robotstatus_var = in_robotstatus_var_stacked;
     }
     else // if (in_robotstatus_flow == RTT::NoData)
     {
@@ -175,10 +184,16 @@ void RTTKinDynMultiArm::updateHook()
         out_jacobian_var.setZero();
         out_jacobianDot_var.setZero();
     }
-    
+
     // PRELOG(Error) << "DEBUG: KIN 2 out_coriolisAndGravity_var = " << out_coriolisAndGravity_var << RTT::endlog();
 
     // Write the data through the ports!
+
+    // for (unsigned int lll = 0; lll < out_robotstatus_var.position.size(); lll++)
+    // {
+    //     RTT::log(RTT::Error) << "out_robotstatus_var.position[" << lll << "] = " << out_robotstatus_var.position[lll] << RTT::endlog();
+    // }
+
     out_robotstatus_port.write(out_robotstatus_var);
     out_inertia_port.write(out_inertia_var);
     out_inertiaInv_port.write(out_inertiaInv_var);
@@ -244,15 +259,10 @@ void RTTKinDynMultiArm::preparePorts()
     }
 
     // prepare input
-    in_robotstatus_var_stacked = sensor_msgs::JointState();
     out_robotstatus_var = sensor_msgs::JointState();
     unsigned int _total_dofs = this->solver_manager.getTotalNumberJointDofs();
     for (unsigned int i = 0; i < _total_dofs; i++)
     {
-        in_robotstatus_var_stacked.position.push_back(0.0);
-        in_robotstatus_var_stacked.velocity.push_back(0.0);
-        in_robotstatus_var_stacked.effort.push_back(0.0);
-
         out_robotstatus_var.position.push_back(0.0);
         out_robotstatus_var.velocity.push_back(0.0);
         out_robotstatus_var.effort.push_back(0.0);
@@ -414,7 +424,6 @@ void RTTKinDynMultiArm::preparePorts()
     // PRELOG(Error) << "[RTT] out_cartAcc_var(" << out_cartAcc_var.rows() << ", " << out_cartAcc_var.cols() << ")" << RTT::endlog();
     // PRELOG(Error) << "[RTT] out_jacobian_var(" << out_jacobian_var.rows() << ", " << out_jacobian_var.cols() << ")" << RTT::endlog();
     // PRELOG(Error) << "[RTT] out_jacobianDot_var(" << out_jacobianDot_var.rows() << ", " << out_jacobianDot_var.cols() << ")" << RTT::endlog();
-
 }
 
 // void RTTKinDynMultiArm::compute(

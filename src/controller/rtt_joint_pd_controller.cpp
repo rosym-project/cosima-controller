@@ -32,13 +32,13 @@
 using namespace cosima;
 using namespace controller;
 
-RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : RTT::TaskContext(name), include_gravity(true), total_dof_size(0)
+RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : RTT::TaskContext(name), total_dof_size(0) //, include_gravity(true)
 {
     addOperation("addRobot", &RTTJointPDCtrl::addRobot, this)
         .doc("Add a robot in terms of the sequential (controlled) DoF")
         .arg("dof", "degrees of freedom");
-    addProperty("include_gravity", this->include_gravity)
-        .doc("Include the gravity term in the commanded torques (default: true).");
+    // addProperty("include_gravity", this->include_gravity)
+    //     .doc("Include the gravity term in the commanded torques (default: true).");
 
     addOperation("setGains", &RTTJointPDCtrl::setGains, this);
     addOperation("setPositionCmd", &RTTJointPDCtrl::setPositionCmd, this);
@@ -145,6 +145,10 @@ bool RTTJointPDCtrl::configureHook()
 
     qError = Eigen::VectorXd::Zero(this->total_dof_size);
     qdError = Eigen::VectorXd::Zero(this->total_dof_size);
+    ones = Eigen::VectorXd::Ones(this->total_dof_size);
+
+    // householderQR_solver = Eigen::HouseholderQR<Eigen::MatrixXd>(this->total_dof_size, this->total_dof_size);
+    ldlt_solver = Eigen::LDLT<Eigen::MatrixXd>(this->total_dof_size);
 
     return true;
 }
@@ -182,69 +186,40 @@ void RTTJointPDCtrl::updateHook()
         return; // Return is better, because in this case we don't send a command at all!
     }
 
-    if (this->include_gravity)
+    in_coriolisAndGravity_flow = in_coriolisAndGravity_port.read(in_coriolisAndGravity_var);
+    if (in_coriolisAndGravity_flow == RTT::NoData)
     {
-        in_coriolisAndGravity_flow = in_coriolisAndGravity_port.read(in_coriolisAndGravity_var);
-        if (in_coriolisAndGravity_flow == RTT::NoData)
-        {
-            PRELOG(Error) << "Houston we have a problem! No data on in_coriolisAndGravity_port." << RTT::endlog();
-            return; // Return is better, because in this case we don't send a command at all!
-        }
-
-        out_torques_var = in_coriolisAndGravity_var;
+        PRELOG(Error) << "Houston we have a problem! No data on in_coriolisAndGravity_port." << RTT::endlog();
+        return; // Return is better, because in this case we don't send a command at all!
     }
 
+    // Do this here to also be able to react to possible changes to the period
     double timeStep = this->getPeriod();
 
+    // Here is an alternate way to convert from std to eigen
     // Eigen::VectorXd fdb_positions = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.position.data(), in_robotstatus_var.position.size());
     // Eigen::VectorXd fdb_velocities = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.velocity.data(), in_robotstatus_var.velocity.size());
-    // Eigen::VectorXd cmd_positions = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(this->in_joint_cmd_var.positions.data(), this->in_joint_cmd_var.positions.size());
-    // Eigen::VectorXd cmd_velocities = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(this->in_joint_cmd_var.velocities.data(), this->in_joint_cmd_var.velocities.size());
-
     for (unsigned int i = 0; i < this->total_dof_size; i++)
     {
         qError(i) = this->in_joint_cmd_var.positions[i] - in_robotstatus_var.position[i];
         qdError(i) = this->in_joint_cmd_var.velocities[i] - in_robotstatus_var.velocity[i];
     }
-
-    // for (unsigned int i = 0; i < this->total_dof_size; i++)
-    // {
-    //     PRELOG(Error) << "this->in_joint_cmd_var.positions["<<i<<"]: " << this->in_joint_cmd_var.positions[i] << RTT::endlog();
-    // }
-
-    // for (unsigned int i = 0; i < this->total_dof_size; i++)
-    // {
-    //     PRELOG(Error) << "this->in_joint_cmd_var.velocities["<<i<<"]: " << this->in_joint_cmd_var.velocities[i] << RTT::endlog();
-    // }
-
-    // for (unsigned int i = 0; i < this->total_dof_size; i++)
-    // {
-    //     PRELOG(Error) << "in_robotstatus_var.position["<<i<<"]: " << in_robotstatus_var.position[i] << RTT::endlog();
-    // }
-
-    // for (unsigned int i = 0; i < this->total_dof_size; i++)
-    // {
-    //     PRELOG(Error) << "in_robotstatus_var.velocity["<<i<<"]: " << in_robotstatus_var.velocity[i] << RTT::endlog();
-    // }
     
-    Eigen::MatrixXd Kd = (kd * Eigen::VectorXd::Ones(qError.size())).asDiagonal();
+    Eigen::MatrixXd Kd = (kd * ones).asDiagonal();
 
-    Eigen::VectorXd p = ((kp * Eigen::VectorXd::Ones(qError.size())).asDiagonal()) * qError.matrix();
-    Eigen::VectorXd d = Kd * qdError.matrix();
+    Eigen::VectorXd pd = ((kp * ones).asDiagonal()) * qError.matrix() + Kd * qdError.matrix();
 
     Eigen::MatrixXd M = in_inertia_var + Kd * timeStep;
-    Eigen::VectorXd b = -in_coriolisAndGravity_var + p + d;
+
+
     // https://eigen.tuxfamily.org/dox-devel/group__TopicLinearAlgebraDecompositions.html
     // https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
-    // qddot = np.linalg.solve(A, b)
-    Eigen::VectorXd qddot = M.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
-    // TODO I have to check if there is a proper solution to prevent jumps apparently?!
-    // Eigen::VectorXd qddot = M.inverse() * b; // Not really an option :D
+    ldlt_solver.compute(M);
+    Eigen::VectorXd qddot = ldlt_solver.solve(-in_coriolisAndGravity_var + pd);
+    // Solver alternative: Slow but very accurate
+    // Eigen::VectorXd qddot = M.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
 
-    // tau = p + d - Kd.dot(qddot) * timeStep
-    out_torques_var += p + d - (Kd * qddot) * timeStep;
-
-    // out_torques_var = kp * (cmd_positions - fdb_positions) - kd * fdb_velocities + in_coriolisAndGravity_var;
+    out_torques_var = pd - (Kd * qddot) * timeStep + in_coriolisAndGravity_var;
 
     out_torques_port.write(out_torques_var);
 }

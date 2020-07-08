@@ -29,12 +29,17 @@ import("cosima-controller")
 
 import("eigen_typekit_d")
 
+# import("rtt_roscomm") # TODO need to be installed properly with all the required typekits
+
 loadComponent("robot","cosima::RTTRobotManipulatorSim")
 setActivityOnCPU("robot",0.001,10,ORO_SCHED_RT,0)
 robot.connectBullet()
-# robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "bullet")
-# robot.setBasePosition("kuka1", 0, -0.2, 0.5)
-robot.connectToExternallySpawnedRobot("kuka1", 1, "bullet")
+# # # Spawn and connect to the robot in bullet
+robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "bullet")
+robot.setBasePosition("kuka1", 0, -0.2, 0.5)
+# # # Connect to the already spawned robot in bullet
+# robot.connectToExternallySpawnedRobot("kuka1", 1, "bullet")
+
 robot.defineKinematicChain("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "world", "iiwa7_link_ee")
 robot.configure()
 
@@ -65,12 +70,12 @@ connect("robot.out_kuka1_inertia_fdb","KinDyn.in_inertia_0_port",cp)
 # connect("robot.out_kuka1_inertia_fdb","jspdctrl.in_inertia_port",cp)
 
 # # # IT REALLY SEEMS LIKE THE ROBOT STATUS IS REALLY BROKEN CURRENTLY
-# connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port",cp)
+connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port",cp)
 connect("KinDyn.out_coriolisAndGravity_port","jspdctrl.in_coriolisAndGravity_port",cp)
 connect("KinDyn.out_inertia_port","jspdctrl.in_inertia_port",cp)
 
 
-connect("robot.out_kuka1_jointstate_fdb","jspdctrl.in_robotstatus_port",cp)
+# connect("robot.out_kuka1_jointstate_fdb","jspdctrl.in_robotstatus_port",cp)
 
 
 connect("jspdctrl.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd",cp)
