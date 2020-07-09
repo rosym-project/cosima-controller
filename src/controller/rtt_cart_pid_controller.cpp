@@ -99,8 +99,8 @@ RTTCartPIDController::RTTCartPIDController(std::string const &name)
     hold_current_position_last = false;
 
     portsArePrepared = false;
-    this->useTSgravitycompensation(true);
-    this->addJSgravitycompensation(false);
+    this->useTSgravitycompensation(false);
+    this->addJSgravitycompensation(true);
 
     desiredPosition = Eigen::Vector3d::Zero();
     currentPosition = Eigen::Vector3d::Zero();
@@ -591,7 +591,8 @@ void RTTCartPIDController::updateHook()
         {
             RTT::log(RTT::Error) << "Holding current position until a command is received." << RTT::endlog();
             in_desiredTaskSpacePosition_var = in_currentTaskSpacePosition_var;
-            in_desiredTaskSpaceVelocity_var = in_currentTaskSpaceVelocity_var;
+            // in_desiredTaskSpaceVelocity_var = in_currentTaskSpaceVelocity_var;
+            in_desiredTaskSpaceVelocity_var.setZero();
             in_desiredTaskSpacePosition_proxy = in_desiredTaskSpacePosition_var;
             in_desiredTaskSpaceAcceleration_var.setZero();
         }

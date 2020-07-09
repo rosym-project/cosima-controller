@@ -60,10 +60,20 @@ KinDyn.configure()
 
 
 loadComponent("jspdctrl", "cosima::controller::RTTJointPDCtrl")
-setActivityOnCPU("jspdctrl",0.001,10,ORO_SCHED_RT,2)
+setActivityOnCPU("jspdctrl",0.001,9,ORO_SCHED_RT,2)
 jspdctrl.addRobot(7)
 jspdctrl.configure()
 jspdctrl.setGains(200,80)
+
+var eigen_vector jconfig = eigen_vector(7)
+jconfig[0]=0.0
+jconfig[1]=1.2
+jconfig[2]=0.0
+jconfig[3]=-1.0
+jconfig[4]=0.0
+jconfig[5]=0.3
+jconfig[6]=0.0
+jspdctrl.setPositionCmd(jconfig)
 
 var ConnPolicy cp;
 
@@ -73,7 +83,6 @@ connect("robot.out_kuka1_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
 connect("robot.out_kuka1_inertia_fdb","KinDyn.in_inertia_0_port",cp)
 # connect("robot.out_kuka1_inertia_fdb","jspdctrl.in_inertia_port",cp)
 
-# # # IT REALLY SEEMS LIKE THE ROBOT STATUS IS REALLY BROKEN CURRENTLY
 connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port",cp)
 connect("KinDyn.out_coriolisAndGravity_port","jspdctrl.in_coriolisAndGravity_port",cp)
 connect("KinDyn.out_inertia_port","jspdctrl.in_inertia_port",cp)
@@ -86,10 +95,25 @@ connect("jspdctrl.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd",cp)
 
 # CART CONTROLLER
 loadComponent("cartctrl", "cosima::controller::RTTCartPIDController")
-setActivityOnCPU("cartctrl",0.001,10,ORO_SCHED_RT,3)
+setActivityOnCPU("cartctrl",0.001,11,ORO_SCHED_RT,3)
 cartctrl.addRobot(6, 7);
 cartctrl.preparePorts();
 cartctrl.configure();
+cartctrl.setGains(400,100)
+cartctrl.setGainsOrientation(30,10)
+
+connect("KinDyn.out_cartPos_port", "cartctrl.in_currentTaskSpacePosition_port", cp)
+connect("KinDyn.out_cartVel_port", "cartctrl.in_currentTaskSpaceVelocity_port", cp)
+
+connect("cartctrl.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd", cp)
+
+connect("KinDyn.out_coriolisAndGravity_port", "cartctrl.in_coriolisAndGravity_port", cp)
+connect("KinDyn.out_inertia_port","cartctrl.in_inertia_port", cp)
+
+connect("KinDyn.out_robotstatus_port", "cartctrl.in_robotstatus_port", cp)
+
+connect("KinDyn.out_jacobian_port","cartctrl.in_jacobian_port", cp)
+connect("KinDyn.out_jacobianDot_port","cartctrl.in_jacobianDot_port", cp)
 
 # connect("Task.out_motion_tracking_1_robotstatus_port", "cartctrl.in_robotstatus_port", cp)
 # connect("Task.out_motion_tracking_1_Jacobian_port","cartctrl.in_jacobian_port", cp)
@@ -112,3 +136,6 @@ robot.start()
 
 KinDyn.start()
 jspdctrl.start()
+
+# jspdctrl.stop();
+# cartctrl.start();

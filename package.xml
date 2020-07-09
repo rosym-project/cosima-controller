@@ -78,6 +78,12 @@
   <exec_depend>sensor_msgs</exec_depend>
 
 
+  <!-- Build deps are queried automatically with orocos_use_package() -->
+  <!-- <build_depend>rtt_ros</build_depend> -->
+  <!-- ROS Msg Typekits and Srv Proxies -->
+  <!-- <build_depend>rtt_sensor_msgs</build_depend> -->
+
+
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
