@@ -232,6 +232,10 @@ orocos_component(${CMAKE_PROJECT_NAME}
 
   # ${PROJECT_SOURCE_DIR}/src/controller/rtt_cart_impedance_controller.cpp
   ${PROJECT_SOURCE_DIR}/src/controller/rtt_cart_pid_controller.cpp
+# Prioritization
+  ${PROJECT_SOURCE_DIR}/src/prioritization/rtt_dynamic_task_prioritization.cpp
+  ${PROJECT_SOURCE_DIR}/src/prioritization/rtt_ghc_projections.cpp
+  ${PROJECT_SOURCE_DIR}/src/prioritization/rtt_robot_contact_situations.cpp
 ) # ...you may add multiple source files
 # set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS RTT_COMPONENT)
 target_link_libraries(${CMAKE_PROJECT_NAME} ${EIGEN3_LIBRARIES} ${OROCOS-RTT_LIBRARIES} ${USE_OROCOS_LIBRARIES} ${orocos_kdl_LIBRARIES} ${kdl_parser_LIBRARIES} ${YAML_CPP_LIBRARIES}
