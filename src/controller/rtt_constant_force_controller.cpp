@@ -174,17 +174,26 @@ void ConstantForceController::compute(
 
     out_force = current_force * in_direction;
 
+    // RTT::log(RTT::Fatal) << "0:\n" << out_force << RTT::endlog();
+
     out_torques = in_jacobian.transpose() * out_force;
+
+    // RTT::log(RTT::Fatal) << "1:\n" << (in_jacobian * out_torques) << RTT::endlog();
+
     if (include_gravity)
     {
         out_torques += in_P_var * in_h_var;
     }
+
+    // RTT::log(RTT::Fatal) << "2:\n" << (in_jacobian * out_torques) << RTT::endlog();
 
     if (include_compensation)
     {
         // TODO perhaps this was the problem all the time, why was there ZERO? I guess there has to be IDENTITY all the time!
         out_torques = (out_torques + in_h_var + in_M_var * in_Mc_var.inverse() * (in_P_var * in_tauM_var - in_P_var * in_h_var + in_Pdot_var * in_robotstatus_vel));
     }
+
+    // RTT::log(RTT::Fatal) << "3:\n" << (in_jacobian * out_torques) << RTT::endlog();
 
     if (include_projection)
     {
@@ -197,6 +206,8 @@ void ConstantForceController::compute(
             out_torques = in_P_var * out_torques;
         }
     }
+
+    // RTT::log(RTT::Fatal) << "4:\n" << (in_jacobian * out_torques) << RTT::endlog();
 
     out_force = in_jacobian * out_torques;
 }

@@ -36,7 +36,7 @@ loadComponent("robot","cosima::RTTRobotManipulatorSim")
 setActivityOnCPU("robot",0,99,ORO_SCHED_RT,0)
 # Set the update rate to 0.001 -> 1 Kz
 # TODO investigate why it apparently does not work with 0.001 but with every other number???
-robot.setUpdatePeriod(0.0)
+robot.setUpdatePeriod(0.003)
 robot.connectBullet()
 # # # Spawn and connect to the robot in bullet
 robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "bullet")
@@ -111,8 +111,10 @@ fctrl.setConstantForce(5); # TODO
 
 # In this case it means that we need to compensate for the EEF which are 0.5 Kg so -4~-5N In case of 0 we 
 fctrl.configure()
-# TODO DLW not sure about this tho
+
+# Ok this works for the single compensation. However, how do we handle the case of VMs? Needs to be checked!
 fctrl.include_gravity=false
+ctrl.include_compensation=true
 
 ###################################################
 ########                Task               ########
@@ -192,6 +194,12 @@ connect("fctrl.out_torques_port","prio.in_force_constraint_1_torques", cp)
 connect("prio.out_torques_port", "robot.in_kuka1_JointTorqueCtrl_cmd", cp)
 
 # connect("jspdctrl.out_torques_port", "robot.in_kuka1_JointTorqueCtrl_cmd", cp)
+
+connect("task.out_force_constraint_1_Inertia_port", "fctrl.in_M_port", cp)
+connect("task.out_force_constraint_1_Inertia_c_port", "fctrl.in_Mc_port", cp)
+connect("task.out_force_constraint_1_P_dot_port", "fctrl.in_Pdot_port", cp)
+connect("task.out_force_constraint_1_robotstatus_port", "fctrl.in_robotstatus_port", cp)
+connect("cartctrl.out_torques_port", "fctrl.in_tauM_port", cp)
 
 
 robot.setControlMode("kuka1", "JointTorqueCtrl")

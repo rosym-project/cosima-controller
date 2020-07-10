@@ -987,7 +987,7 @@ void DynamicTaskPrioritization::updateHook()
     // {
     if (debug_switch_to_manual)
     {
-        out_torques_var += out_torques_var + in_coriolisAndGravity_var;
+        out_torques_var += in_coriolisAndGravity_var;
         out_torques_port.write(out_torques_var);
     }
     else

@@ -104,6 +104,8 @@ namespace cosima
 
             unsigned int getTotalJoints();
 
+            void addCompensationForCOT(const unsigned int index, const unsigned int index_task_to_be_compensated_for);
+
             // void setStartingIndex(unsigned int startingIndex);
 
             void updateStatusAndGravity(const Eigen::VectorXd &robotstatus_pos, const Eigen::VectorXd &robotstatus_vel, const Eigen::VectorXd &robotstatus_trq, const Eigen::VectorXd &coriolisAndGravity);
@@ -139,6 +141,8 @@ namespace cosima
 
             // std::map<int, std::string> controlObjectivesMap;
             std::vector<std::string> controlObjectivesList;
+
+            std::vector<std::vector<int>> compensation_for_cots;
 
             // This here has the size of all available ports
             std::map<unsigned int, std::vector<BlockStorage>> coIdandPortPartIdPerPort;

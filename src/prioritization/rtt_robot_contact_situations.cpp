@@ -50,6 +50,12 @@ RobotContactSituations::RobotContactSituations(const unsigned int numberOfCS, co
     }
 
     this->tasksizes = Eigen::VectorXd::Zero(this->numTasks);
+    for (unsigned int i = 0; i < this->numTasks; i++)
+    {
+        // this->compensation_for_cots.resize(this->numTasks);
+        std::vector<int> tmp;
+        this->compensation_for_cots.push_back(tmp);
+    }
 
     this->lastActiveAlpha = Eigen::MatrixXd::Zero(this->numTasks, this->numTasks);
     this->selection = Eigen::MatrixXd::Zero(this->numTasks, this->numTasks);
@@ -271,6 +277,11 @@ void RobotContactSituations::addControlObjectiveTask(const std::string &coName, 
 {
     this->tasksizes[index] = taskDoF;
     this->controlObjectivesList[index] = coName;
+}
+
+void RobotContactSituations::addCompensationForCOT(const unsigned int index, const unsigned int index_task_to_be_compensated_for)
+{
+    this->compensation_for_cots[index].push_back(index_task_to_be_compensated_for);
 }
 
 void RobotContactSituations::addPortMapping(const unsigned int portId, const unsigned int coIndex, const unsigned int jac_begin_i, const unsigned int jac_begin_j, const unsigned int selfRowSize, const unsigned int tau_begin)
@@ -586,6 +597,18 @@ void RobotContactSituations::updateOutputTorques(const float transitionIndex, Ei
         //                          << (allProjections[i] * this->torque_commands[i]) << RTT::endlog();
         // }
 
+        // if (this->compensation_for_cots.size() > i)
+        // {
+        //     Eigen::VectorXd v = this->torque_commands[i];
+        //     std::vector<int> tmp_compen_vec = this->compensation_for_cots[i];
+        //     for (unsigned int comp_index = 0; comp_index < tmp_compen_vec.size(); comp_index++)
+        //     {
+                
+        //     }
+        //     v = (Eigen::MatrixXd::Identity(7, 7) - in_P_var[eleIdx]) * (v + in_h_var + in_M_var * in_Mc_var[eleIdx].inverse() * (in_P_var[eleIdx] * this->torque_commands[eleIdx] - in_P_var[eleIdx] * in_h_var + in_Pdot_var[eleIdx] * in_robotstatus_var.velocities));
+        // }
+        
+
         // TODO ######################### TODO ######################### TODO: If one task needs to compensate for another, add the compensation torques here!
         // Eigen::VectorXd v = this->torque_commands[i];
         // if (taskNeedsToCompensateOtherTasks.count(i) > 0)
@@ -595,6 +618,8 @@ void RobotContactSituations::updateOutputTorques(const float transitionIndex, Ei
         //         v = (Eigen::MatrixXd::Identity(7, 7) - in_P_var[eleIdx]) * (v + in_h_var + in_M_var * in_Mc_var[eleIdx].inverse() * (in_P_var[eleIdx] * this->torque_commands[eleIdx] - in_P_var[eleIdx] * in_h_var + in_Pdot_var[eleIdx] * in_robotstatus_var.velocities));
         //     }
         // }
+        
+
 
         Eigen::VectorXd ttmmpp = allProjections[i] * this->torque_commands[i];
         torque_commands_proj_states_stacked.segment(i * this->jointDoF, this->jointDoF) = ttmmpp;
