@@ -33,18 +33,18 @@ import("eigen_typekit_d")
 
 loadComponent("robot","cosima::RTTRobotManipulatorSim")
 # We need to have the period at 0 to prevent the instantiation of a PeriodicActivity
-setActivityOnCPU("robot",0,99,ORO_SCHED_OTHER,0)
+setActivityOnCPU("robot",0,99,ORO_SCHED_RT,0)
 # Set the update rate to 0.001 -> 1 Kz
 # TODO investigate why it apparently does not work with 0.001 but with every other number???
-robot.setUpdatePeriod(0.003)
+robot.setUpdatePeriod(0.01)
 robot.connectBullet()
 # # # Spawn and connect to the robot in bullet
-robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "bullet")
+robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/catkin_py_ws/src/py-flex-assembly/gym_flexassembly/data/kuka-iiwa-7-egp-40/model.urdf", "bullet")
 robot.setBasePosition("kuka1", 0, -0.2, 0.5)
 # # # Connect to the already spawned robot in bullet
 # robot.connectToExternallySpawnedRobot("kuka1", 1, "bullet")
 
-robot.defineKinematicChain("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "world", "iiwa7_link_ee")
+robot.defineKinematicChain("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/catkin_py_ws/src/py-flex-assembly/gym_flexassembly/data/kuka-iiwa-7-egp-40/model.urdf", "world", "SchunkEGP40_link")
 robot.configure()
 
 # eigen_vector joint_config = new eigen_vector()
@@ -53,12 +53,13 @@ robot.configure()
 # robot.resetJointConfiguration(joint_config)
 
 loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
-setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_OTHER,1)
-KinDyn.addChain("KDL","/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf","world","iiwa7_link_ee")
+setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_RT,1)
+KinDyn.addChain("KDL","/home/dwigand/code/cogimon/CoSimA/pyBullet/catkin_py_ws/src/py-flex-assembly/gym_flexassembly/data/kuka-iiwa-7-egp-40/model.urdf","world","SchunkEGP40_link")
 KinDyn.configure()
 
+
 loadComponent("jspdctrl", "cosima::controller::RTTJointPDCtrl")
-setActivityOnCPU("jspdctrl",0.001,9,ORO_SCHED_OTHER,2)
+setActivityOnCPU("jspdctrl",0.001,9,ORO_SCHED_RT,2)
 jspdctrl.addRobot(7)
 jspdctrl.configure()
 jspdctrl.setGains(200,80)
@@ -81,7 +82,7 @@ connect("robot.out_kuka1_inertia_fdb","KinDyn.in_inertia_0_port",cp)
 
 # CART CONTROLLER
 loadComponent("cartctrl", "cosima::controller::RTTCartPIDController")
-setActivityOnCPU("cartctrl",0.001,11,ORO_SCHED_OTHER,3)
+setActivityOnCPU("cartctrl",0.001,11,ORO_SCHED_RT,3)
 cartctrl.addRobot(6, 7);
 cartctrl.preparePorts();
 cartctrl.configure();
@@ -92,7 +93,7 @@ cartctrl.setGainsOrientation(30,10)
 ########          forcecontroller          ########
 ###################################################
 loadComponent("fctrl", "cosima::controller::ConstantForceController")
-setActivityOnCPU("fctrl",0.001,10,ORO_SCHED_OTHER, 3)
+setActivityOnCPU("fctrl",0.001,10,ORO_SCHED_RT, 3)
 fctrl.setDOFsize(7);
 fctrl.setTaskSpaceDimension(6);
 fctrl.preparePorts();
@@ -118,7 +119,7 @@ fctrl.include_compensation=true
 ########                Task               ########
 ###################################################
 loadComponent("task","cosima::task::TaskDescriberSynthesis")
-setActivityOnCPU("task",0.001,90,ORO_SCHED_OTHER, 4)
+setActivityOnCPU("task",0.001,90,ORO_SCHED_RT, 4)
 task.loadYAMLConfig("/home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/src/cosima-controller/scripts/test_constraint_z.yaml")
 task.configure()
 task.activateContactSituation("Folding_SR_0");
@@ -128,7 +129,7 @@ task.debug_pointintime=1;
 ########                Prio               ########
 ###################################################
 loadComponent("prio", "cosima::prioritization::DynamicTaskPrioritization")
-setActivityOnCPU("prio", 0.001, 90, ORO_SCHED_OTHER, 5)
+setActivityOnCPU("prio", 0.001, 90, ORO_SCHED_RT, 5)
 prio.loadYAMLConfig("/home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/src/cosima-controller/scripts/test_constraint_z.yaml")
 prio.configure()
 prio.setStartCS("Folding_SR_0");
