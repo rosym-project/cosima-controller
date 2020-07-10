@@ -29,6 +29,8 @@
 
 #include "../../include/cosima-controller/util/MatrixDecomposition.hpp"
 
+#define PRELOG(X) (RTT::log(RTT::X) << "[" << this->getName() << "] ")
+
 using namespace cosima;
 using namespace prioritization;
 using namespace util;
@@ -733,12 +735,12 @@ void DynamicTaskPrioritization::calculateDebug(const Eigen::MatrixXd &in_inertia
         {
             if (prioritiesVector(counter) < 0)
             {
-                std::cerr << " a( " << i << "," << j << ") = " << prioritiesVector(counter) << " < 0" << std::endl;
+                std::cerr << " a( " << i << "," << j << ") = " << prioritiesVector(counter) << " < 0" << RTT::endlog();
                 // return;
             }
             if (prioritiesVector(counter) > 1)
             {
-                std::cerr << " a( " << i << "," << j << ") = " << prioritiesVector(counter) << " > 1" << std::endl;
+                std::cerr << " a( " << i << "," << j << ") = " << prioritiesVector(counter) << " > 1" << RTT::endlog();
                 // return;
             }
             GP.setAlphaIJ(i, j, prioritiesVector(counter));
@@ -1037,7 +1039,7 @@ void DynamicTaskPrioritization::stopHook()
         }
     }
 
-    std::cout << "MEDIAN: " << this->getName() << " = " << median << RTT::endlog();
+    PRELOG(Error) << "MEDIAN: " << this->getName() << " = " << median << RTT::endlog();
     // stops the component (update hook wont be  called anymore)
 }
 
@@ -1366,57 +1368,59 @@ void DynamicTaskPrioritization::alternateManualCalculationsDebug(Eigen::VectorXd
 
 void DynamicTaskPrioritization::displayCurrentState()
 {
-    std::cout << "############## DynamicTaskPrioritization State begin " << std::endl;
+    PRELOG(Error) << "############## DynamicTaskPrioritization State begin " << RTT::endlog();
     for (unsigned int portNr = 0; portNr < in_torques_ports.size(); portNr++)
     {
-        std::cout << " in_torques_var[" << portNr << "] \n"
-                  << in_torques_var[portNr] << std::endl;
+        PRELOG(Error) << " in_torques_var[" << portNr << "] \n"
+                  << in_torques_var[portNr] << RTT::endlog();
     }
 
     for (unsigned int portNr = 0; portNr < in_torques_ports.size(); portNr++)
     {
-        std::cout << " in_jacobian_var[" << portNr << "] \n"
-                  << in_jacobian_var[portNr] << std::endl;
+        PRELOG(Error) << " in_jacobian_var[" << portNr << "] \n"
+                  << in_jacobian_var[portNr] << RTT::endlog();
     }
 
     for (unsigned int portNr = 0; portNr < in_torques_ports.size(); portNr++)
     {
-        std::cout << " in_inertia_var[" << portNr << "] \n"
-                  << in_inertia_var[portNr] << std::endl;
+        PRELOG(Error) << " in_inertia_var[" << portNr << "] \n"
+                  << in_inertia_var[portNr] << RTT::endlog();
     }
 
-    std::cout << " in_coriolisAndGravity_var \n"
-              << in_coriolisAndGravity_var << std::endl;
+    PRELOG(Error) << " in_coriolisAndGravity_var \n"
+              << in_coriolisAndGravity_var << RTT::endlog();
 
-    std::cout << " out_torques_var \n"
-              << out_torques_var << std::endl;
-    for (unsigned int portNr = 0; portNr < in_torques_ports.size(); portNr++)
+    PRELOG(Error) << " out_torques_var \n"
+              << out_torques_var << RTT::endlog();
+
+    PRELOG(Error) << " out_torques_var size = " <<  out_torques_var.size() << ", out_torquesProj_var size = " <<  out_torquesProj_var.size() << RTT::endlog();
+    for (unsigned int portNr = 0; portNr < out_torquesProj_var.size(); portNr++)
     {
-        std::cout << " out_torquesProj_var[" << portNr << "] \n"
-                  << out_torquesProj_var[portNr] << std::endl;
+        PRELOG(Error) << " out_torquesProj_var[" << portNr << "] \n"
+                  << out_torquesProj_var[portNr] << RTT::endlog();
     }
 
-    for (unsigned int portNr = 0; portNr < in_torques_ports.size(); portNr++)
+    for (unsigned int portNr = 0; portNr < nullspaces.size(); portNr++)
     {
-        std::cout << " nullspaces[" << portNr << "] \n"
-                  << nullspaces[portNr] << std::endl;
+        PRELOG(Error) << " nullspaces[" << portNr << "] \n"
+                  << nullspaces[portNr] << RTT::endlog();
     }
 
-    for (unsigned int portNr = 0; portNr < in_torques_ports.size(); portNr++)
+    for (unsigned int portNr = 0; portNr < projections.size(); portNr++)
     {
-        std::cout << " projections[" << portNr << "] \n"
-                  << projections[portNr] << std::endl;
+        PRELOG(Error) << " projections[" << portNr << "] \n"
+                  << projections[portNr] << RTT::endlog();
     }
 
-    for (unsigned int portNr = 0; portNr < in_torques_ports.size(); portNr++)
-    {
-        std::cout << "original torques [" << portNr << "] \n"
-                  << in_torques_var[portNr] << std::endl;
-        std::cout << "projected torques [" << portNr << "] \n"
-                  << out_torquesProj_var[portNr] << std::endl;
-    }
+    // for (unsigned int portNr = 0; portNr < in_torques_ports.size(); portNr++)
+    // {
+    //     PRELOG(Error) << "original torques [" << portNr << "] \n"
+    //               << in_torques_var[portNr] << RTT::endlog();
+    //     PRELOG(Error) << "projected torques [" << portNr << "] \n"
+    //               << out_torquesProj_var[portNr] << RTT::endlog();
+    // }
 
-    std::cout << "############## DynamicTaskPrioritization State end " << std::endl;
+    PRELOG(Error) << "############## DynamicTaskPrioritization State end " << RTT::endlog();
 }
 
 //this macro should appear only once per library

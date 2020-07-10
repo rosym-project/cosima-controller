@@ -229,6 +229,7 @@ orocos_component(${CMAKE_PROJECT_NAME}
 # Controller
   ${PROJECT_SOURCE_DIR}/src/controller/gravity_compensation/rtt_joint_gravity_compensation.cpp
   ${PROJECT_SOURCE_DIR}/src/controller/rtt_joint_pd_controller.cpp
+  ${PROJECT_SOURCE_DIR}/src/controller/rtt_constant_force_controller.cpp
 
   # ${PROJECT_SOURCE_DIR}/src/controller/rtt_cart_impedance_controller.cpp
   ${PROJECT_SOURCE_DIR}/src/controller/rtt_cart_pid_controller.cpp

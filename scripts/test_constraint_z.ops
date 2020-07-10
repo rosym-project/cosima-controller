@@ -1,0 +1,219 @@
+# ============================================================
+#
+# This file is a part of CoSiMA (CogIMon) project
+#
+# Copyright (C) 2020 by Dennis Leroy Wigand <dwigand@techfak.uni-bielefeld.de>
+#
+# This file may be licensed under the terms of the
+# GNU Lesser General Public License Version 3 (the ``LGPL''),
+# or (at your option) any later version.
+#
+# Software distributed under the License is distributed
+# on an ``AS IS'' basis, WITHOUT WARRANTY OF ANY KIND, either
+# express or implied. See the LGPL for the specific language
+# governing rights and limitations.
+#
+# You should have received a copy of the LGPL along with this
+# program. If not, go to http://www.gnu.org/licenses/lgpl.html
+# or write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# The development of this software was supported by:
+#   CoR-Lab, Research Institute for Cognition and Robotics
+#     Bielefeld University
+#
+# ============================================================
+
+import("cosima-robot-sim")
+import("cosima-controller")
+
+import("eigen_typekit_d")
+
+# import("rtt_roscomm") # TODO need to be installed properly with all the required typekits
+
+loadComponent("robot","cosima::RTTRobotManipulatorSim")
+# We need to have the period at 0 to prevent the instantiation of a PeriodicActivity
+setActivityOnCPU("robot",0,99,ORO_SCHED_RT,0)
+# Set the update rate to 0.001 -> 1 Kz
+# TODO investigate why it apparently does not work with 0.001 but with every other number???
+robot.setUpdatePeriod(0.0)
+robot.connectBullet()
+# # # Spawn and connect to the robot in bullet
+robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "bullet")
+robot.setBasePosition("kuka1", 0, -0.2, 0.5)
+# # # Connect to the already spawned robot in bullet
+# robot.connectToExternallySpawnedRobot("kuka1", 1, "bullet")
+
+robot.defineKinematicChain("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "world", "iiwa7_link_ee")
+robot.configure()
+
+# eigen_vector joint_config = new eigen_vector()
+# joint_config[0] = 0.2
+# ...
+# robot.resetJointConfiguration(joint_config)
+
+loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
+setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_RT,1)
+KinDyn.addChain("KDL","/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf","world","iiwa7_link_ee")
+KinDyn.configure()
+
+
+
+loadComponent("jspdctrl", "cosima::controller::RTTJointPDCtrl")
+setActivityOnCPU("jspdctrl",0.001,9,ORO_SCHED_RT,2)
+jspdctrl.addRobot(7)
+jspdctrl.configure()
+jspdctrl.setGains(200,80)
+
+var eigen_vector jconfig = eigen_vector(7)
+jconfig[0]=0.0
+jconfig[1]=1.2
+jconfig[2]=0.0
+jconfig[3]=-1.0
+jconfig[4]=0.0
+jconfig[5]=0.3
+jconfig[6]=0.0
+jspdctrl.setPositionCmd(jconfig)
+
+var ConnPolicy cp;
+
+connect("robot.out_kuka1_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
+connect("robot.out_kuka1_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
+connect("robot.out_kuka1_inertia_fdb","KinDyn.in_inertia_0_port",cp)
+
+# CART CONTROLLER
+loadComponent("cartctrl", "cosima::controller::RTTCartPIDController")
+setActivityOnCPU("cartctrl",0.001,11,ORO_SCHED_RT,3)
+cartctrl.addRobot(6, 7);
+cartctrl.preparePorts();
+cartctrl.configure();
+cartctrl.setGains(400,100)
+cartctrl.setGainsOrientation(30,10)
+
+###################################################
+########          forcecontroller          ########
+###################################################
+loadComponent("fctrl", "cosima::controller::ConstantForceController")
+setActivityOnCPU("fctrl",0.001,10,ORO_SCHED_RT, 3)
+fctrl.setDOFsize(7);
+fctrl.setTaskSpaceDimension(6);
+fctrl.preparePorts();
+var eigen_vector forcedir = eigen_vector(6);
+forcedir[0] = 0;
+forcedir[1] = 0;
+forcedir[2] = -1;
+forcedir[3] = 0;
+forcedir[4] = 0;
+forcedir[5] = 0;
+fctrl.setConstantForceVector(forcedir);
+# fctrl.setConstantForce(-30); # TODO DLW check this!
+fctrl.setConstantForce(5); # TODO
+
+# In this case it means that we need to compensate for the EEF which are 0.5 Kg so -4~-5N In case of 0 we 
+fctrl.configure()
+# TODO DLW not sure about this tho
+fctrl.include_gravity=false
+
+###################################################
+########                Task               ########
+###################################################
+loadComponent("task","cosima::task::TaskDescriberSynthesis")
+setActivityOnCPU("task",0.001,90,ORO_SCHED_RT, 4)
+task.loadYAMLConfig("/home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/src/cosima-controller/scripts/test_constraint_z.yaml")
+task.configure()
+task.activateContactSituation("Folding_SR_0");
+task.debug_pointintime=1;
+
+###################################################
+########                Prio               ########
+###################################################
+loadComponent("prio", "cosima::prioritization::DynamicTaskPrioritization")
+setActivityOnCPU("prio", 0.001, 90, ORO_SCHED_RT, 5)
+prio.loadYAMLConfig("/home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/src/cosima-controller/scripts/test_constraint_z.yaml")
+prio.configure()
+prio.setStartCS("Folding_SR_0");
+prio.setNewTargetCS("Folding_SR_0");
+prio.debug_pointintime=1;
+
+# THIS IS STILL TODO
+connect("KinDyn.out_cartPos_port", "cartctrl.in_currentTaskSpacePosition_port", cp)
+connect("KinDyn.out_cartVel_port", "cartctrl.in_currentTaskSpaceVelocity_port", cp)
+# connect("cartctrl.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd", cp)
+# connect("KinDyn.out_coriolisAndGravity_port", "cartctrl.in_coriolisAndGravity_port", cp)
+# connect("KinDyn.out_inertia_port","cartctrl.in_inertia_port", cp)
+# connect("KinDyn.out_robotstatus_port", "cartctrl.in_robotstatus_port", cp)
+# connect("KinDyn.out_jacobian_port","cartctrl.in_jacobian_port", cp)
+# connect("KinDyn.out_jacobianDot_port","cartctrl.in_jacobianDot_port", cp)
+
+###################################################
+########              Task CONN            ########
+###################################################
+connect("KinDyn.out_robotstatus_port", "task.in_robotstatus_port", cp)
+connect("KinDyn.out_coriolisAndGravity_port","task.in_gc_port", cp)
+connect("KinDyn.out_inertia_port","task.in_inertia_port", cp)
+connect("KinDyn.out_jacobianDot_port","task.in_jacobian_dot_port", cp)
+connect("KinDyn.out_jacobian_port","task.in_jacobian_port", cp)
+connect("KinDyn.out_cartPos_port","task.in_CartPos_port", cp)
+connect("KinDyn.out_cartVel_port", "task.in_CartVel_port", cp)
+
+
+# connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port", cp)
+
+connect("task.out_nullspace_tracking_1_GC_port","jspdctrl.in_coriolisAndGravity_port", cp)
+connect("task.out_nullspace_tracking_1_robotstatus_port","jspdctrl.in_robotstatus_port", cp)
+connect("task.out_nullspace_tracking_1_Inertia_c_port","jspdctrl.in_inertia_port",cp)
+
+connect("task.out_motion_tracking_1_robotstatus_port", "cartctrl.in_robotstatus_port", cp)
+connect("task.out_motion_tracking_1_Jacobian_port","cartctrl.in_jacobian_port", cp)
+connect("task.out_motion_tracking_1_Jacobian_dot_port","cartctrl.in_jacobianDot_port", cp)
+connect("task.out_motion_tracking_1_Inertia_c_port","cartctrl.in_inertia_port", cp)
+connect("task.out_motion_tracking_1_GC_port", "cartctrl.in_coriolisAndGravity_port", cp)
+connect("task.out_motion_tracking_1_P_port","cartctrl.in_projection_port", cp)
+connect("task.out_motion_tracking_1_P_dot_port","cartctrl.in_projectionDot_port", cp)
+
+connect("task.out_nullspace_tracking_1_Jacobian_port", "prio.in_nullspace_tracking_1_J", cp)
+connect("task.out_nullspace_tracking_1_Inertia_port", "prio.in_nullspace_tracking_1_inertia", cp)
+connect("task.out_motion_tracking_1_Jacobian_port", "prio.in_motion_tracking_1_J", cp)
+connect("task.out_motion_tracking_1_Inertia_port", "prio.in_motion_tracking_1_inertia", cp)
+connect("task.out_force_constraint_1_Jacobian_port", "fctrl.in_jacobian_port", cp)
+connect("task.out_force_constraint_1_Jacobian_port", "prio.in_force_constraint_1_J", cp)
+connect("task.out_force_constraint_1_Inertia_port", "prio.in_force_constraint_1_inertia", cp)
+connect("task.out_force_constraint_1_P_port", "fctrl.in_P_port", cp)
+connect("task.out_force_constraint_1_GC_port", "fctrl.in_h_port", cp)
+###################################################
+########              Prio CONN            ########
+###################################################
+connect("KinDyn.out_robotstatus_port", "prio.in_robotstatus_port", cp)
+connect("KinDyn.out_coriolisAndGravity_port", "prio.in_coriolisAndGravity_port", cp)
+connect("jspdctrl.out_torques_port", "prio.in_nullspace_tracking_1_torques", cp)
+connect("cartctrl.out_torques_port","prio.in_motion_tracking_1_torques", cp)
+connect("fctrl.out_torques_port","prio.in_force_constraint_1_torques", cp)
+
+connect("prio.out_torques_port", "robot.in_kuka1_JointTorqueCtrl_cmd", cp)
+
+# connect("jspdctrl.out_torques_port", "robot.in_kuka1_JointTorqueCtrl_cmd", cp)
+
+
+robot.setControlMode("kuka1", "JointTorqueCtrl")
+robot.start()
+
+KinDyn.start()
+jspdctrl.start()
+
+cartctrl.start();
+
+fctrl.start()
+
+task.start()
+prio.start()
+
+# jspdctrl.stop();
+
+# task.activateContactSituation("Folding_SR_1");
+# prio.setNewTargetCS("Folding_SR_1");
+
+# task.activateContactSituation("Folding_SR_2");
+# prio.setNewTargetCS("Folding_SR_2");
+
+# cartctrl.stop();
+# cartctrl.start();

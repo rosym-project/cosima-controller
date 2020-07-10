@@ -1014,10 +1014,6 @@ void TaskDescriberSynthesis::updateHook()
     GC_Flow = in_GC_Input_port.read(in_GC_var);
     // robotstatus
     robotstatus_Flow = in_robotstatus_Input_port.read(in_robotstatus_var);
-    // Convert into Eigen:
-    this->in_robotstatus_pos_ = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.position.data(), in_robotstatus_var.position.size());
-    this->in_robotstatus_vel_ = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.velocity.data(), in_robotstatus_var.velocity.size());
-    this->in_robotstatus_trq_ = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.effort.data(), in_robotstatus_var.effort.size());
 
     // Cart Pos feedback
     CartPos_Flow = in_CartPos_Input_port.read(in_CartPos_var);
@@ -1035,6 +1031,26 @@ void TaskDescriberSynthesis::updateHook()
     {
         return;
     }
+
+    // RTT::log(RTT::Fatal) << "Size in_robotstatus_var.position.size() = " << in_robotstatus_var.position.size() << RTT::endlog();
+    // Eigen::VectorXd _tmp_my_pos = Eigen::VectorXd::Zero(in_robotstatus_var.position.size());
+    // for (unsigned int iiiiii = 0; iiiiii < in_robotstatus_var.position.size(); iiiiii++)
+    // {
+    //     _tmp_my_pos[iiiiii] = in_robotstatus_var.position[iiiiii];
+    // }
+
+    // Convert into Eigen:
+    this->in_robotstatus_pos_ = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.position.data(), in_robotstatus_var.position.size());
+    this->in_robotstatus_vel_ = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.velocity.data(), in_robotstatus_var.velocity.size());
+    this->in_robotstatus_trq_ = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.effort.data(), in_robotstatus_var.effort.size());
+
+    // for (unsigned int iiiiii = 0; iiiiii < in_robotstatus_var.position.size(); iiiiii++)
+    // {
+    //     RTT::log(RTT::Fatal) << "_tmp_my_pos[" << iiiiii << "] = " << _tmp_my_pos[iiiiii] << RTT::endlog();
+    //     RTT::log(RTT::Fatal) << "this->in_robotstatus_pos_[" << iiiiii << "] = " << this->in_robotstatus_pos_[iiiiii] << RTT::endlog();
+    // }
+
+    // RTT::log(RTT::Fatal) << "this->in_robotstatus_pos_ = " << this->in_robotstatus_pos_ << RTT::endlog();
 
     // Timed switching of CS refs #32
     increaseActivation();
@@ -1080,7 +1096,7 @@ void TaskDescriberSynthesis::updateHook()
         //                      << in_CartPos_var << RTT::endlog();
         // RTT::log(RTT::Error) << "UPDATE<>: " << r_id << " " << vec_robots_[r_id]->getRobotName() << " > > > in_CartVel_var=\n"
         //                      << in_CartVel_var << RTT::endlog();
-        vec_robots_[r_id]->updateJMG(in_J_var, in_J_Dot_var, in_M_var, in_GC_var, in_robotstatus_pos_, in_robotstatus_vel_, in_robotstatus_trq_, in_CartPos_var, in_CartVel_var);
+        vec_robots_[r_id]->updateJMG(in_J_var, in_J_Dot_var, in_M_var, in_GC_var, this->in_robotstatus_pos_, this->in_robotstatus_vel_, this->in_robotstatus_trq_, in_CartPos_var, in_CartVel_var);
     }
     // RTT::os::TimeService::nsecs end_robot_containers = RTT::os::TimeService::Instance()->getNSecs(start_robot_containers);
     // if (time_storage_robot_containers.size() < time_storage_robot_containers.capacity())

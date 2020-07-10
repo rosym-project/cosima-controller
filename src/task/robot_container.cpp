@@ -87,8 +87,8 @@ void RobotContainer::updateJMG(const Eigen::MatrixXd &in_J_var, const Eigen::Mat
     this->gc_ = in_G_var.segment(this->gc_i_, this->gc_p_);
 
     this->robotstatus_pos_ = in_robotstatus_pos.segment(this->gc_i_, this->gc_p_);
-    this->robotstatus_trq_ = in_robotstatus_vel.segment(this->gc_i_, this->gc_p_);
-    this->robotstatus_pos_ = in_robotstatus_trq.segment(this->gc_i_, this->gc_p_);
+    this->robotstatus_vel_ = in_robotstatus_vel.segment(this->gc_i_, this->gc_p_);
+    this->robotstatus_trq_ = in_robotstatus_trq.segment(this->gc_i_, this->gc_p_);
 
     this->cart_pos_ = in_cart_pos_var.segment<7>(this->cart_pos_i);
     this->cart_vel_ = in_cart_vel_var.segment<6>(this->j_i_);
