@@ -44,6 +44,11 @@ robot.setBasePosition("kuka1", 0, -0.2, 0.5)
 
 # robot.defineKinematicChain("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "world", "iiwa7_link_ee")
 robot.defineKinematicChain("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/catkin_py_ws/src/py-flex-assembly/gym_flexassembly/data/kuka-iiwa-7-egp-40/model.urdf", "world", "iiwa7_link_ee")
+
+# Initialize the two finger gripper
+robot.initialize2FingerPrismaticGripper_kuka1("SchunkEGP40_Finger1_joint", "SchunkEGP40_Finger2_joint")
+# robot.setGripper_kuka1_Command(0.1, 2.0);
+
 robot.configure()
 
 # eigen_vector joint_config = new eigen_vector()

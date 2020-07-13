@@ -53,6 +53,9 @@ robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/catkin_py_
 # Set the kinematic chain based on the information of the urdf.
 # robot.defineKinematicChain("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "world", "iiwa7_link_ee")
 robot.defineKinematicChain("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/catkin_py_ws/src/py-flex-assembly/gym_flexassembly/data/kuka-iiwa-7-egp-40/model.urdf", "world", "iiwa7_link_ee")
+# Initialize the two finger gripper
+robot.initialize2FingerPrismaticGripper_kuka1("SchunkEGP40_Finger1_joint", "SchunkEGP40_Finger2_joint")
+# robot.setGripper_kuka1_Command(0.1, 2.0);
 # Configure the robots and create the necessary OROCOS RTT ports.
 robot.configure()
 # Choose a desired control mode: (JointGravComp, JointTorqueCtrl, JointPositionCtrl).
