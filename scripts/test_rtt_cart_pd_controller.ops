@@ -97,7 +97,7 @@ cartctrl.addRobot(6, 7);
 cartctrl.preparePorts();
 cartctrl.configure();
 cartctrl.setGains(400,100)
-cartctrl.setGainsOrientation(30,10)
+cartctrl.setGainsOrientation(30,2)
 
 connect("KinDyn.out_cartPos_port", "cartctrl.in_currentTaskSpacePosition_port", cp)
 connect("KinDyn.out_cartVel_port", "cartctrl.in_currentTaskSpaceVelocity_port", cp)
