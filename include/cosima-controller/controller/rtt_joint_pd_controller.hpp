@@ -66,6 +66,11 @@ namespace cosima
     private:
       double getOrocosTime();
 
+      // This parameter is used to define the stepwidth inertia and gain weighting.
+      // It it is smaller than the (WC)RT of its Sense-React-Chain, the robot becomes unstable.
+      // The values are in ms.
+      double timeStep;
+
       // InputPort to receive commands
       RTT::InputPort<Eigen::MatrixXd> in_inertia_port;
       RTT::FlowStatus in_inertia_flow;

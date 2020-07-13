@@ -33,10 +33,7 @@ import("eigen_typekit_d")
 
 loadComponent("robot","cosima::RTTRobotManipulatorSim")
 # We need to have the period at 0 to prevent the instantiation of a PeriodicActivity
-setActivityOnCPU("robot",0,99,ORO_SCHED_RT,0)
-# Set the update rate to 0.001 -> 1 Kz
-# TODO investigate why it apparently does not work with 0.001 but with every other number???
-robot.setUpdatePeriod(0.0015)
+setActivityOnCPU("robot",0.001,99,ORO_SCHED_OTHER,0)
 robot.connectBullet()
 # # # Spawn and connect to the robot in bullet
 robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "bullet")

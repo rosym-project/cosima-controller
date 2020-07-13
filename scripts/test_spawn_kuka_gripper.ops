@@ -24,16 +24,15 @@
 #
 # ============================================================
 
+import("eigen_typekit_d")
+
 # Load the lib.
 import("cosima-robot-sim")
 # Load the robot interface.
 loadComponent("robot","cosima::RTTRobotManipulatorSim")
 # Set the desired update rate (0.001 ms = 1 Kz).
 # setActivity("robot",0.001,10,ORO_SCHED_OTHER)
-setActivityOnCPU("robot",0,99,ORO_SCHED_OTHER,0)
-# Set the update rate to 0.001 -> 1 Kz
-# TODO investigate why it apparently does not work with 0.001 but with every other number???
-robot.setUpdatePeriod(0.001)
+setActivityOnCPU("robot",0.001,99,ORO_SCHED_OTHER,0)
 # Connect to the simulator of choice.
 # Currently, gazebo and bullet are supported.
 # When chosing bullet, make sure to run a bullet Shared Memory server in preface.

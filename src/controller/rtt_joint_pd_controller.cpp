@@ -44,10 +44,12 @@ RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : RTT::TaskContext(name)
     addOperation("setPositionCmd", &RTTJointPDCtrl::setPositionCmd, this);
 
     this->kp = 100;
-    this->kd = 3;
-
     addProperty("kp", this->kp);
+    this->kd = 3;
     addProperty("kd", this->kd);
+
+    this->timeStep = 0.005;
+    addProperty("timeStep", this->timeStep);
 
     this->vec_robot_dof.clear();
 }
@@ -193,9 +195,6 @@ void RTTJointPDCtrl::updateHook()
         return; // Return is better, because in this case we don't send a command at all!
     }
 
-    // Do this here to also be able to react to possible changes to the period
-    double timeStep = this->getPeriod();
-
     // Here is an alternate way to convert from std to eigen
     // Eigen::VectorXd fdb_positions = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.position.data(), in_robotstatus_var.position.size());
     // Eigen::VectorXd fdb_velocities = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.velocity.data(), in_robotstatus_var.velocity.size());
@@ -220,6 +219,12 @@ void RTTJointPDCtrl::updateHook()
     // Eigen::VectorXd qddot = M.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
 
     out_torques_var = pd - (Kd * qddot) * timeStep + in_coriolisAndGravity_var;
+
+    // // Debug simple controller
+    // for (unsigned int i = 0; i < this->total_dof_size; i++)
+    // {
+    //     out_torques_var(i) = kp * qError(i) + kd * qdError(i) + in_coriolisAndGravity_var(i);
+    // }
 
     out_torques_port.write(out_torques_var);
 }

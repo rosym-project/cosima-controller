@@ -33,18 +33,17 @@ import("eigen_typekit_d")
 
 loadComponent("robot","cosima::RTTRobotManipulatorSim")
 # We need to have the period at 0 to prevent the instantiation of a PeriodicActivity
-setActivityOnCPU("robot",0,99,ORO_SCHED_OTHER,0)
-# Set the update rate to 0.001 -> 1 Kz
-# TODO investigate why it apparently does not work with 0.001 but with every other number???
-robot.setUpdatePeriod(0.003)
+setActivityOnCPU("robot",0.001,90,ORO_SCHED_OTHER,0)
 robot.connectBullet()
 # # # Spawn and connect to the robot in bullet
-robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "bullet")
+# robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "bullet")
+robot.spawnRobot("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/catkin_py_ws/src/py-flex-assembly/gym_flexassembly/data/kuka-iiwa-7-egp-40/model.urdf", "bullet")
 robot.setBasePosition("kuka1", 0, -0.2, 0.5)
 # # # Connect to the already spawned robot in bullet
 # robot.connectToExternallySpawnedRobot("kuka1", 1, "bullet")
 
-robot.defineKinematicChain("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "world", "iiwa7_link_ee")
+# robot.defineKinematicChain("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf", "world", "iiwa7_link_ee")
+robot.defineKinematicChain("kuka1", "/home/dwigand/code/cogimon/CoSimA/pyBullet/catkin_py_ws/src/py-flex-assembly/gym_flexassembly/data/kuka-iiwa-7-egp-40/model.urdf", "world", "iiwa7_link_ee")
 robot.configure()
 
 # eigen_vector joint_config = new eigen_vector()
@@ -53,15 +52,19 @@ robot.configure()
 # robot.resetJointConfiguration(joint_config)
 
 loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
-setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_OTHER,1)
-KinDyn.addChain("KDL","/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf","world","iiwa7_link_ee")
+setActivityOnCPU("KinDyn",0.001,90,ORO_SCHED_OTHER,1)
+# KinDyn.addChain("KDL","/home/dwigand/code/cogimon/CoSimA/pyBullet/pyCompliantInteractionPlanning/gym_flexassembly/data/kuka-iiwa-7/model.urdf","world","iiwa7_link_ee")
+KinDyn.addChain("KDL","/home/dwigand/code/cogimon/CoSimA/pyBullet/catkin_py_ws/src/py-flex-assembly/gym_flexassembly/data/kuka-iiwa-7-egp-40/model.urdf","world","iiwa7_link_ee")
 KinDyn.configure()
 
 loadComponent("jspdctrl", "cosima::controller::RTTJointPDCtrl")
-setActivityOnCPU("jspdctrl",0.001,9,ORO_SCHED_OTHER,2)
+setActivityOnCPU("jspdctrl",0.001,90,ORO_SCHED_OTHER,2)
 jspdctrl.addRobot(7)
 jspdctrl.configure()
 jspdctrl.setGains(200,80)
+# Needs to be as close as possible to the real T-E2E.
+# At least not smaller!
+jspdctrl.timeStep = 0.005
 
 var eigen_vector jconfig = eigen_vector(7)
 jconfig[0]=0.0
@@ -157,7 +160,13 @@ connect("KinDyn.out_cartPos_port","task.in_CartPos_port", cp)
 connect("KinDyn.out_cartVel_port", "task.in_CartVel_port", cp)
 
 
-# connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port", cp)
+# connect("KinDyn.out_robotstatus_port", "jspdctrl.in_robotstatus_port", cp)
+# connect("KinDyn.out_coriolisAndGravity_port", "jspdctrl.in_coriolisAndGravity_port", cp)
+# connect("KinDyn.out_inertia_port","jspdctrl.in_inertia_port", cp)
+
+# connect("robot.out_kuka1_jointstate_fdb","jspdctrl.in_robotstatus_port",cp)
+# connect("robot.out_kuka1_gc_fdb","jspdctrl.in_coriolisAndGravity_port",cp)
+# connect("robot.out_kuka1_inertia_fdb","jspdctrl.in_inertia_port",cp)
 
 connect("task.out_nullspace_tracking_1_GC_port","jspdctrl.in_coriolisAndGravity_port", cp)
 connect("task.out_nullspace_tracking_1_robotstatus_port","jspdctrl.in_robotstatus_port", cp)
