@@ -30,61 +30,31 @@ project(cosima-controller)
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
 
-# set(CMAKE_BUILD_TYPE Debug)
 # SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 SET(CMAKE_BUILD_TYPE Release)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  # rtt_ros
+  rtt_ros
   roscpp
   std_msgs
   geometry_msgs
   sensor_msgs
   trajectory_msgs
-  # kdl_parser
+  kdl_parser
 )
 
-# TODO DLW
-# add_definitions(-DDISABLE_KDL)
-
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-
-find_package(OROCOS-RTT REQUIRED)
 if (NOT OROCOS-RTT_FOUND)
+  message (STATUS "OROCOS RTT not found through catkin. Check find_package alternative")
+  find_package(OROCOS-RTT REQUIRED)
+  if (NOT OROCOS-RTT_FOUND)
   message (FATAL_ERROR "\nCould not find Orocos-RTT. Please use the shell command\n 'source orocos_toolchain/env.sh' and then run cmake again.")
+  endif()
+  
+  include(${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake)
 endif()
 
-include(${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake)
-
-### PROBLEM WITH ROS (KDL VERSION) INCONSISTENCY TODO SOLVE!
-
-### find_package(orocos_kdl REQUIRED)
-SET(orocos_kdl_LIBRARIES /home/dwigand/citk/systems/cogimon-minimal-nightly/lib/liborocos-kdl.so.1.4)
-include_directories(BEFORE SYSTEM /home/dwigand/citk/systems/cogimon-minimal-nightly/include/kdl)
-link_directories(/home/dwigand/citk/systems/cogimon-minimal-nightly/lib/)
-
-### find_package(kdl_parser REQUIRED)
-# -Dkdl_parser_DIR=/home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/devel/share/kdl_parser
-# SET(kdl_parser_INCLUDE_DIRS /home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/devel/include/kdl)
-SET(kdl_parser_LIBRARIES /home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/devel/.private/kdl_parser/lib/libkdl_parser.so)
-include_directories(BEFORE SYSTEM /home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/src/kdl_parser/kdl_parser/include/kdl_parser)
-link_directories(/home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/devel/.private/kdl_parser/lib/)
-
-# SET(kdl_LIBRARIES /home/dwigand/citk/systems/cogimon-minimal-nightly/lib/liborocos-kdl.so.1.4)
-# include_directories(BEFORE SYSTEM /home/dwigand/code/cogimon/CoSimA/ros-cosima-ws/devel/include/kdl)
-# link_directories(/home/dwigand/citk/systems/cogimon-minimal-nightly/lib/)
-
-
-# include(FindPackageHandleStandardArgs)
-# find_package(PkgConfig)
-# if(PKGCONFIG_FOUND)
-#   pkg_check_modules(BULLET bullet>=2.8)
-# endif()
-# find_package_handle_standard_args(Bullet DEFAULT_MSG BULLET_LIBRARIES BULLET_INCLUDE_DIRS)
+find_package(orocos_kdl REQUIRED)
+link_directories(${orocos_kdl_LIBRARY_DIRS})
 
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIRS})
@@ -253,7 +223,7 @@ ${catkin_LIBRARIES}
 
 orocos_generate_package(
   #INCLUDE_DIRS include
-  DEPENDS rtt_ros
+  DEPENDS rtt_ros orocos_kdl
 )
 
 ## Rename C++ executable without prefix
