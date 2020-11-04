@@ -38,6 +38,9 @@ RTTKinDynMultiArm::RTTKinDynMultiArm(std::string const &name) : RTT::TaskContext
     addOperation("addChainWithWorldOffset", &RTTKinDynMultiArm::addChainWithWorldOffset, this).doc("add chain");
 
     solver_manager = KinDynMultiArm();
+
+    addProperty("ext_override", ext_override);
+    this->ext_override = -1;
 }
 
 bool RTTKinDynMultiArm::configureHook()
@@ -127,6 +130,20 @@ void RTTKinDynMultiArm::updateHook()
     // if (in_robotstatus_flow != RTT::NoData)
     if (!no_data_received)
     {
+        bool tmp_override = false;
+        if (this->ext_override == 1)
+        {
+            tmp_override = true;
+        }
+        else if (this->ext_override == 0)
+        {
+            tmp_override = false;
+        }
+        else
+        {
+            tmp_override = override;
+        }
+        
         this->solver_manager.computeAllAsStack(
             out_robotstatus_var,
             out_inertia_var,
@@ -141,7 +158,7 @@ void RTTKinDynMultiArm::updateHook()
             out_jacobianDot_var,
             in_external_gravity_var_stacked,
             in_inertia_var_stacked,
-            override);
+            tmp_override);
 
         // RTT::log(RTT::Error) << "out_inertia_var =\n" << out_inertia_var << RTT::endlog();
 

@@ -116,6 +116,8 @@ namespace cosima
 
     // unsigned int DOFsize, DOFsizeActive;
     bool portsArePrepared;
+    // property to override the usage of external grav and inertia
+    int ext_override;
     // unsigned int numRobotArms, numObjects;
     // std::vector<Eigen::Matrix3f> objectInertia;
     // std::vector<float> objectMass;

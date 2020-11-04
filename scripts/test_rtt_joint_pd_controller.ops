@@ -115,13 +115,9 @@ connect("robot.out_kuka1_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
 connect("robot.out_kuka1_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
 connect("robot.out_kuka1_inertia_fdb","KinDyn.in_inertia_0_port",cp)
 
-connect("robot.out_kuka1_jointstate_fdb","jspdctrl.in_robotstatus_port",cp)
-connect("robot.out_kuka1_gc_fdb","jspdctrl.in_coriolisAndGravity_port",cp)
-connect("robot.out_kuka1_inertia_fdb","jspdctrl.in_inertia_port",cp)
-
-# connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port",cp)
-# connect("KinDyn.out_coriolisAndGravity_port","jspdctrl.in_coriolisAndGravity_port",cp)
-# connect("KinDyn.out_inertia_port","jspdctrl.in_inertia_port",cp)
+connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port",cp)
+connect("KinDyn.out_coriolisAndGravity_port","jspdctrl.in_coriolisAndGravity_port",cp)
+connect("KinDyn.out_inertia_port","jspdctrl.in_inertia_port",cp)
 
 # # # Command connection always stays the same
 connect("jspdctrl.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd",cp)
@@ -133,5 +129,5 @@ stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints
 robot.setControlMode("kuka1", "JointTorqueCtrl")
 robot.start()
 
-# KinDyn.start()
+KinDyn.start()
 # jspdctrl.start()
