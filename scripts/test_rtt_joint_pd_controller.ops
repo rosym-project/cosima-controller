@@ -128,6 +128,7 @@ connect("jspdctrl.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd",cp)
 
 stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints"))
 
+stream("robot.out_kuka1_jointstate_fdb", ros.topic("/joint_state_publisher/joint_states"))
 
 robot.setControlMode("kuka1", "JointTorqueCtrl")
 robot.start()
