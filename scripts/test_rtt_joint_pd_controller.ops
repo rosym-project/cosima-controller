@@ -42,9 +42,9 @@ loadComponent("robot","cosima::RTTRobotManipulatorSim")
 setActivityOnCPU("robot",0.001,90,ORO_SCHED_OTHER,0)
 robot.connectBullet()
 # Connect to the already spawned robot in bullet
-# robot.connectToRobotByName("kuka-iiwa-7-egp-40_0", "bullet")
+robot.connectToRobotByName("iiwa14_0", "bullet")
 
-# robot.spawnRobot("kuka1", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/kuka-iiwa-7-egp-40/model.urdf", "bullet")
+# robot.spawnRobot("iiwa14_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/kuka-iiwa-7-egp-40/model.urdf", "bullet")
 
 
 
@@ -53,13 +53,13 @@ robot.connectBullet()
 # /home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/isir-iiwa14/iiwa14_ETHZ.urdf
 # /home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/tut-iiwa14/iiwa14.urdf
 
-robot.spawnRobot("kuka1", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf", "bullet")
+# robot.spawnRobot("iiwa14_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf", "bullet")
 
-robot.setBasePosition("kuka1",-0.3,-1.0,0.0)
+robot.setBasePosition("iiwa14_0",-0.3,-1.0,0.0)
 
-robot.defineKinematicChain("kuka1", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf", "world", "iiwa7_link_ee")
+robot.defineKinematicChain("iiwa14_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf", "world", "iiwa7_link_ee")
 
-# robot.defineKinematicChain("kuka-iiwa-7-egp-40_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/kuka-iiwa-7-egp-40/model.urdf", "world", "iiwa7_link_ee")
+# robot.defineKinematicChain("iiwa14_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/kuka-iiwa-7-egp-40/model.urdf", "world", "iiwa7_link_ee")
 robot.configure()
 
 loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
@@ -109,28 +109,28 @@ jspdctrl.setGains(200,80)
 var ConnPolicy cp;
 
 # # # Use direct robot interface connection
-# connect("robot.out_kuka-iiwa-7-egp-40_0_jointstate_fdb","jspdctrl.in_robotstatus_port",cp)
-# connect("robot.out_kuka-iiwa-7-egp-40_0_gc_fdb","jspdctrl.in_coriolisAndGravity_port",cp)
-# connect("robot.out_kuka-iiwa-7-egp-40_0_inertia_fdb","jspdctrl.in_inertia_port",cp)
+# connect("robot.out_iiwa14_0_jointstate_fdb","jspdctrl.in_robotstatus_port",cp)
+# connect("robot.out_iiwa14_0_gc_fdb","jspdctrl.in_coriolisAndGravity_port",cp)
+# connect("robot.out_iiwa14_0_inertia_fdb","jspdctrl.in_inertia_port",cp)
 
 # # # Use a proxy connection via the KinDyn component
-connect("robot.out_kuka1_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
-connect("robot.out_kuka1_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
-connect("robot.out_kuka1_inertia_fdb","KinDyn.in_inertia_0_port",cp)
+connect("robot.out_iiwa14_0_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
+connect("robot.out_iiwa14_0_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
+connect("robot.out_iiwa14_0_inertia_fdb","KinDyn.in_inertia_0_port",cp)
 
 connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port",cp)
 connect("KinDyn.out_coriolisAndGravity_port","jspdctrl.in_coriolisAndGravity_port",cp)
 connect("KinDyn.out_inertia_port","jspdctrl.in_inertia_port",cp)
 
 # # # Command connection always stays the same
-connect("jspdctrl.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd",cp)
+connect("jspdctrl.out_torques_port","robot.in_iiwa14_0_JointTorqueCtrl_cmd",cp)
 
 
 stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints"))
 
-stream("robot.out_kuka1_jointstate_fdb", ros.topic("/joint_state_publisher/joint_states"))
+stream("robot.out_iiwa14_0_jointstate_fdb", ros.topic("/joint_state_publisher/joint_states"))
 
-robot.setControlMode("kuka1", "JointTorqueCtrl")
+robot.setControlMode("iiwa14_0", "JointTorqueCtrl")
 robot.start()
 
 KinDyn.start()
