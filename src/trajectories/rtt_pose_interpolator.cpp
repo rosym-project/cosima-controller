@@ -37,6 +37,7 @@ PoseInterpolator::PoseInterpolator(std::string const &name) : RTT::TaskContext(n
     traj_max_vel = 2.0;
     traj_max_acc = 0.1;
     traj_time = 1.5;
+    first_iter = true;
 
     this->addProperty("traj_max_vel", traj_max_vel);
     this->addProperty("traj_max_acc", traj_max_acc);
@@ -83,6 +84,14 @@ bool PoseInterpolator::configureHook()
     out_pose_matrix_port.setDataSample(out_pose_matrix_var);
     ports()->addPort(out_pose_matrix_port);
 
+    first = Eigen::Vector3d::Zero();
+    start = Eigen::Vector3d::Zero();
+    goal = Eigen::Vector3d::Zero();
+    diff = Eigen::Vector3d::Zero();
+    qFirst = Eigen::Quaterniond::Identity();
+    qStart = Eigen::Quaterniond::Identity();
+    qGoal = Eigen::Quaterniond::Identity();
+
     return true;
 }
 
@@ -90,6 +99,7 @@ bool PoseInterpolator::startHook()
 {
     st = this->getOrocosTime();
     once = false;
+    first_iter = true;
     return true;
 }
 
@@ -101,15 +111,18 @@ void PoseInterpolator::updateHook()
         return;
     }
 
-    Eigen::Vector3d start = in_current_pose_var.block<3,1>(0,3);
-    Eigen::Vector3d goal;
-    Eigen::Vector3d diff;
-    Eigen::Quaterniond qStart(in_current_pose_var.block<3,3>(0,0));
-    Eigen::Quaterniond qGoal;
+    if (first_iter)
+    {
+        first = in_current_pose_var.block<3,1>(0,3);
+        qFirst = Eigen::Quaterniond(in_current_pose_var.block<3,3>(0,0));
+        first_iter = false;
+    }
 
     in_pose_flow = in_pose_port.read(in_pose_var);
     if (in_pose_flow == RTT::NewData)
     {
+        start = in_current_pose_var.block<3,1>(0,3);
+        qStart = Eigen::Quaterniond(in_current_pose_var.block<3,3>(0,0));
         goal << in_pose_var.position.x, in_pose_var.position.y, in_pose_var.position.z;
 
         diff = goal - start;
@@ -134,6 +147,7 @@ void PoseInterpolator::updateHook()
     {
         double t = (this->getOrocosTime() - st);
         double timeIndex = 1.0;
+
         if (t <= trap_gen.Duration())
         {
             timeIndex = trap_gen.Pos(t);
@@ -141,9 +155,16 @@ void PoseInterpolator::updateHook()
 
         out_pose_matrix_var.block<3,1>(0,3) = start + timeIndex * diff;
 
-        Eigen::Quaterniond qres = qStart.slerp(timeIndex, qGoal);
+        out_pose_matrix_var.block<3,3>(0,0) = qStart.slerp(timeIndex, qGoal).toRotationMatrix();
 
-        out_pose_matrix_var.block<3,3>(0,0) = qres.toRotationMatrix();
+        out_pose_matrix_var(3,3) = 1;
+    }
+    else
+    {
+        // Always set the first starting pose
+        out_pose_matrix_var.block<3,1>(0,3) = first;
+
+        out_pose_matrix_var.block<3,3>(0,0) = qFirst.toRotationMatrix();
 
         out_pose_matrix_var(3,3) = 1;
     }

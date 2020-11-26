@@ -33,6 +33,7 @@ ros.import("rtt_roscomm")
 ros.import("rtt_trajectory_msgs")
 ros.import("eigen_typekit")
 ros.import("rtt_sensor_msgs")
+ros.import("rtt_geometry_msgs")
 
 import("cosima-controller")
 
@@ -105,6 +106,12 @@ jspdctrl.setGains(200,80)
 # jconfig[5]=-1.0280273135423905
 # jconfig[6]=-0.030310267110530087
 
+# loadComponent("traj", "cosima::trajectories::PoseInterpolator")
+# setActivityOnCPU("traj",0.001,10,ORO_SCHED_RT,2)
+# traj.configure()
+
+
+
 
 var ConnPolicy cp;
 
@@ -130,8 +137,11 @@ stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints
 
 stream("robot.out_iiwa14_0_jointstate_fdb", ros.topic("/joint_state_publisher/joint_states"))
 
+# stream("traj.in_pose_port", ros.topic("/traj"))
+
 robot.setControlMode("iiwa14_0", "JointTorqueCtrl")
 robot.start()
 
 KinDyn.start()
-# jspdctrl.start()
+jspdctrl.start()
+# traj.start()

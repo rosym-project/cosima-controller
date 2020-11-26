@@ -80,6 +80,15 @@ namespace cosima
       double traj_max_vel, traj_max_acc, traj_time;
 
       bool once;
+      bool first_iter;
+
+      Eigen::Vector3d first;
+      Eigen::Vector3d start;
+      Eigen::Vector3d goal;
+      Eigen::Vector3d diff;
+      Eigen::Quaterniond qFirst;
+      Eigen::Quaterniond qStart;
+      Eigen::Quaterniond qGoal;
     };
 
   } // namespace trajectories
