@@ -39,9 +39,12 @@ PoseInterpolator::PoseInterpolator(std::string const &name) : RTT::TaskContext(n
     traj_time = 1.5;
     first_iter = true;
 
+    ignore_traj = false;
+
     this->addProperty("traj_max_vel", traj_max_vel);
     this->addProperty("traj_max_acc", traj_max_acc);
     this->addProperty("traj_time", traj_time);
+    this->addProperty("ignore_traj", ignore_traj);
 }
 
 double PoseInterpolator::getOrocosTime()
@@ -132,6 +135,17 @@ void PoseInterpolator::updateHook()
         qGoal.z() = in_pose_var.orientation.z;
         qGoal.w() = in_pose_var.orientation.w;
 
+        // TODO do the same for the orientation:
+        // RTT::log(RTT::Error) << diff.norm() << RTT::endlog();
+        if (diff.norm() < 0.11)
+        {
+            ignore_traj = true;
+        }
+        else
+        {
+            ignore_traj = false;
+        }
+
         trap_gen = KDL::VelocityProfile_Trap(traj_max_vel, traj_max_acc);
         trap_gen.SetProfileDuration(0.0, 1.0, traj_time);
 
@@ -148,7 +162,7 @@ void PoseInterpolator::updateHook()
         double t = (this->getOrocosTime() - st);
         double timeIndex = 1.0;
 
-        if (t <= trap_gen.Duration())
+        if ((t <= trap_gen.Duration()) && (!ignore_traj))
         {
             timeIndex = trap_gen.Pos(t);
         }

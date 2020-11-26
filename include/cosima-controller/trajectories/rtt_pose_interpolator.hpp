@@ -81,6 +81,7 @@ namespace cosima
 
       bool once;
       bool first_iter;
+      bool ignore_traj;
 
       Eigen::Vector3d first;
       Eigen::Vector3d start;
