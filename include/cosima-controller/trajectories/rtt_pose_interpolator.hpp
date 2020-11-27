@@ -59,19 +59,31 @@ namespace cosima
     private:
       double getOrocosTime();
 
-      // InputPort to receive the initial pose command
+      // InputPort to receive the pose command
       RTT::InputPort<geometry_msgs::Pose> in_pose_port;
       RTT::FlowStatus in_pose_flow;
       geometry_msgs::Pose in_pose_var;
 
+      // InputPort to receive the pass-through pose commands (use for high frequency)
+      RTT::InputPort<geometry_msgs::Pose> in_pose_pt_port;
+      RTT::FlowStatus in_pose_pt_flow;
+      geometry_msgs::Pose in_pose_pt_var;
+
       // InputPort to receive the current pose matrix
-      RTT::InputPort<Eigen::MatrixXd> in_current_pose_port;
+      // RTT::InputPort<Eigen::MatrixXd> in_current_pose_port;
+      // RTT::FlowStatus in_current_pose_flow;
+      // Eigen::MatrixXd in_current_pose_var;
+      RTT::InputPort<geometry_msgs::Pose> in_current_pose_port;
       RTT::FlowStatus in_current_pose_flow;
-      Eigen::MatrixXd in_current_pose_var;
+      geometry_msgs::Pose in_current_pose_var;
 
       // OutputPort for the interpolated pose matrix commands
       RTT::OutputPort<Eigen::MatrixXd> out_pose_matrix_port;
       Eigen::MatrixXd out_pose_matrix_var;
+
+      // OutputPort for the interpolated pose commands
+      RTT::OutputPort<geometry_msgs::Pose> out_pose_port;
+      geometry_msgs::Pose out_pose_var;
 
       KDL::VelocityProfile_Trap trap_gen;
 
