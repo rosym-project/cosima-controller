@@ -117,6 +117,13 @@ namespace cosima
       // Eigen::HouseholderQR<Eigen::MatrixXd> householderQR_solver;
       // For speed over accuracy (and matrix needs to be positive or negative definite):
       Eigen::LDLT<Eigen::MatrixXd> ldlt_solver;
+
+      // Velocity filtering mechanism
+      bool useFilter;
+      double maxVelRad;
+      Eigen::VectorXd errorT;
+      Eigen::VectorXd lastCommand;
+      Eigen::VectorXd scalingVec;
     };
 
   } // namespace controller
