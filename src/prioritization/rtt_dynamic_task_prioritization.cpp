@@ -589,6 +589,7 @@ void DynamicTaskPrioritization::setStartCS(const std::string &cs_name)
 {
     for (unsigned int i = 0; i < rcss.size(); i++)
     {
+        RTT::log(RTT::Error) << "setStartCS for : " << i << " to " << cs_name << RTT::endlog();
         rcss[i].setStartCS(cs_name);
     }
 }
