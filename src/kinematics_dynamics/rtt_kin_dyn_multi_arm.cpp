@@ -34,6 +34,7 @@ using namespace cosima;
 RTTKinDynMultiArm::RTTKinDynMultiArm(std::string const &name) : RTT::TaskContext(name), portsArePrepared(false)
 {
     addOperation("addChain", &RTTKinDynMultiArm::addChain, this).doc("add chain");
+    addOperation("addChainWithCompliance", &RTTKinDynMultiArm::addChainWithCompliance, this).doc("add chain with compliance");
     // addOperation("addChainWithWorldOffset_to", &RTTKinDynMultiArm::addChainWithWorldOffset_to, this).doc("add chain");
     addOperation("addChainWithWorldOffset", &RTTKinDynMultiArm::addChainWithWorldOffset, this).doc("add chain");
 
@@ -41,6 +42,14 @@ RTTKinDynMultiArm::RTTKinDynMultiArm(std::string const &name) : RTT::TaskContext
 
     addProperty("ext_override", ext_override);
     this->ext_override = -1;
+}
+
+/**
+ * This needs to be called before the component is configured!
+ */
+void RTTKinDynMultiArm::setComplianceFrame(const unsigned int &index, const geometry_msgs::Pose &offset)
+{
+    this->solver_manager.setComplianceFrame(index, offset);
 }
 
 bool RTTKinDynMultiArm::configureHook()
@@ -240,6 +249,20 @@ bool RTTKinDynMultiArm::addChain(const std::string &solver_type, const std::stri
     return solver_manager.addRobotChain(solver_type, modelname, chain_root_link_name, chain_tip_link_name);
 }
 
+bool RTTKinDynMultiArm::addChainWithCompliance(const std::string &solver_type, const std::string &modelname, const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const geometry_msgs::Pose &compliance_frame)
+{
+    geometry_msgs::Pose _worldOffset;
+    _worldOffset.position.x = 0;
+    _worldOffset.position.y = 0;
+    _worldOffset.position.z = 0;
+
+    _worldOffset.orientation.w = 1;
+    _worldOffset.orientation.x = 0;
+    _worldOffset.orientation.y = 0;
+    _worldOffset.orientation.z = 0;
+    return solver_manager.addRobotChainWithWorldOffset(solver_type, modelname, chain_root_link_name, chain_tip_link_name, _worldOffset, compliance_frame);
+}
+
 bool RTTKinDynMultiArm::addChainWithWorldOffset_to(const std::string &solver_type, const std::string &modelname, const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const Eigen::VectorXd &worldOffsetTranslation, const Eigen::VectorXd &worldOffsetRotation)
 {
     return solver_manager.addRobotChainWithWorldOffset(solver_type, modelname, chain_root_link_name, chain_tip_link_name, worldOffsetTranslation, worldOffsetRotation);
@@ -247,7 +270,16 @@ bool RTTKinDynMultiArm::addChainWithWorldOffset_to(const std::string &solver_typ
 
 bool RTTKinDynMultiArm::addChainWithWorldOffset(const std::string &solver_type, const std::string &modelname, const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const geometry_msgs::Pose &worldOffset)
 {
-    return solver_manager.addRobotChainWithWorldOffset(solver_type, modelname, chain_root_link_name, chain_tip_link_name, worldOffset);
+    geometry_msgs::Pose _cf;
+    _cf.position.x = 0;
+    _cf.position.y = 0;
+    _cf.position.z = 0;
+
+    _cf.orientation.w = 1;
+    _cf.orientation.x = 0;
+    _cf.orientation.y = 0;
+    _cf.orientation.z = 0;
+    return solver_manager.addRobotChainWithWorldOffset(solver_type, modelname, chain_root_link_name, chain_tip_link_name, worldOffset, _cf);
 }
 
 void RTTKinDynMultiArm::preparePorts()

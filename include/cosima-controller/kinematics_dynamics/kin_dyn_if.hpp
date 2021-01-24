@@ -47,7 +47,7 @@ public:
     // Needs to be called during configuration phase (Non-RT)
     virtual bool setChain(const std::string &chain_root_link_name, const std::string &chain_tip_link_name) = 0;
     virtual bool setChainWithWorldOffset(const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const Eigen::VectorXd &worldOffsetTranslation, const Eigen::VectorXd &worldOffsetRotation) = 0;
-    virtual bool setChainWithWorldOffset(const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const geometry_msgs::Pose &worldOffset) = 0;
+    virtual bool setChainWithWorldOffset(const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const geometry_msgs::Pose &worldOffset, const geometry_msgs::Pose &compliance_frame) = 0;
 
     // Should be called once everything is set up (RT)
     virtual void compute(
@@ -83,6 +83,8 @@ public:
         bool override = false) = 0;
 
     virtual unsigned int getDoF() = 0;
+
+    virtual void setComplianceFrame(const geometry_msgs::Pose &offset) = 0;
 
 protected:
     virtual bool loadModel(const std::string &modelname) = 0;

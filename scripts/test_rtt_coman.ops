@@ -1,0 +1,98 @@
+# ============================================================
+#
+# This file is a part of CoSiMA (CogIMon) project
+#
+# Copyright (C) 2020 by Dennis Leroy Wigand <dwigand@techfak.uni-bielefeld.de>
+#
+# This file may be licensed under the terms of the
+# GNU Lesser General Public License Version 3 (the ``LGPL''),
+# or (at your option) any later version.
+#
+# Software distributed under the License is distributed
+# on an ``AS IS'' basis, WITHOUT WARRANTY OF ANY KIND, either
+# express or implied. See the LGPL for the specific language
+# governing rights and limitations.
+#
+# You should have received a copy of the LGPL along with this
+# program. If not, go to http://www.gnu.org/licenses/lgpl.html
+# or write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# The development of this software was supported by:
+#   CoR-Lab, Research Institute for Cognition and Robotics
+#     Bielefeld University
+#
+# ============================================================
+
+# Load the rtt ros service lib.
+import("rtt_ros")
+# Load the lib.
+ros.import("cosima-robot-sim")
+
+ros.import("rtt_roscomm")
+ros.import("rtt_trajectory_msgs")
+ros.import("eigen_typekit")
+ros.import("rtt_sensor_msgs")
+ros.import("rtt_geometry_msgs")
+
+import("cosima-controller")
+
+# Load the robot interface.
+loadComponent("robot","cosima::RTTRobotManipulatorSim")
+# We need to have the period at 0 to prevent the instantiation of a PeriodicActivity
+setActivityOnCPU("robot",0.001,90,ORO_SCHED_OTHER,0)
+robot.connectBullet()
+# Connect to the already spawned robot in bullet
+robot.connectToRobotByName("coman_0", "bullet")
+
+robot.defineKinematicChain("coman_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/coman/urdf/coman.urdf", "Waist", "LForearm")
+# LSoftHand
+# LWrMot3
+
+robot.configure()
+
+
+
+loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
+setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_RT,1)
+KinDyn.addChain("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/coman/urdf/coman.urdf","Waist","LForearm")
+KinDyn.configure()
+
+loadComponent("jspdctrl", "cosima::controller::RTTJointPDCtrl")
+setActivityOnCPU("jspdctrl",0.001,10,ORO_SCHED_RT,2)
+jspdctrl.addRobot(8)
+jspdctrl.configure()
+jspdctrl.setGains(200,80)
+
+
+var eigen_vector jconfig = eigen_vector(8)
+jconfig[0]=0.0
+jconfig[1]=0.0
+jconfig[2]=0.0
+jconfig[3]=0.0
+jconfig[4]=0.0
+# jconfig[5]=0.3
+# jconfig[5]=0.0
+# jconfig[6]=0.0
+jspdctrl.setPositionCmd(jconfig)
+
+
+
+var ConnPolicy cp;
+connect("robot.out_coman_0_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
+connect("robot.out_coman_0_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
+connect("robot.out_coman_0_inertia_fdb","KinDyn.in_inertia_0_port",cp)
+
+connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port",cp)
+connect("KinDyn.out_coriolisAndGravity_port","jspdctrl.in_coriolisAndGravity_port",cp)
+connect("KinDyn.out_inertia_port","jspdctrl.in_inertia_port",cp)
+
+# # # Command connection always stays the same
+connect("jspdctrl.out_torques_port","robot.in_coman_0_JointTorqueCtrl_cmd",cp)
+
+
+robot.setControlMode("coman_0", "JointTorqueCtrl")
+robot.start()
+
+KinDyn.start()
+jspdctrl.start()

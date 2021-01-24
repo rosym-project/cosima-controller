@@ -48,9 +48,19 @@ robot.connectToRobotByName("iiwa14_0", "bullet")
 robot.defineKinematicChain("iiwa14_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf", "world", "iiwa_link_ee")
 robot.configure()
 
+# var geometry_msgs.Pose cf = geometry_msgs.Pose()
+# cf.position.x = 0
+# cf.position.y = 0
+# cf.position.z = 0.15
+# cf.orientation.w = 1
+# cf.orientation.x = 0
+# cf.orientation.y = 0
+# cf.orientation.z = 0
+
 loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
 setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_RT,1)
 KinDyn.addChain("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee")
+# KinDyn.addChainWithCompliance("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee", cf)
 KinDyn.configure()
 
 
