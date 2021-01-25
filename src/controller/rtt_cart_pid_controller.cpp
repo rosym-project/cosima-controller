@@ -367,6 +367,58 @@ void RTTCartPIDController::updateHook()
     // in_desiredTaskSpaceVelocity_flow = in_desiredTaskSpaceVelocity_port.read(in_desiredTaskSpaceVelocity_var);
     // in_desiredTaskSpaceAcceleration_flow = in_desiredTaskSpaceAcceleration_port.read(in_desiredTaskSpaceAcceleration_var);
 
+        // in_desiredTaskSpacePosition_var_eig(0) = in_desiredTaskSpacePosition_var.position.x;
+    // in_desiredTaskSpacePosition_var_eig(1) = in_desiredTaskSpacePosition_var.position.y;
+    // in_desiredTaskSpacePosition_var_eig(2) = in_desiredTaskSpacePosition_var.position.z;
+    // in_desiredTaskSpacePosition_var_eig(3) = in_desiredTaskSpacePosition_var.orientation.w;
+    // in_desiredTaskSpacePosition_var_eig(4) = in_desiredTaskSpacePosition_var.orientation.x;
+    // in_desiredTaskSpacePosition_var_eig(5) = in_desiredTaskSpacePosition_var.orientation.y;
+    // in_desiredTaskSpacePosition_var_eig(6) = in_desiredTaskSpacePosition_var.orientation.z;
+
+    // in_desiredTaskSpaceVelocity_var_eig(0) = in_desiredTaskSpaceVelocity_var.linear.x;
+    // in_desiredTaskSpaceVelocity_var_eig(1) = in_desiredTaskSpaceVelocity_var.linear.y;
+    // in_desiredTaskSpaceVelocity_var_eig(2) = in_desiredTaskSpaceVelocity_var.linear.z;
+    // in_desiredTaskSpaceVelocity_var_eig(3) = in_desiredTaskSpaceVelocity_var.angular.x;
+    // in_desiredTaskSpaceVelocity_var_eig(4) = in_desiredTaskSpaceVelocity_var.angular.y;
+    // in_desiredTaskSpaceVelocity_var_eig(5) = in_desiredTaskSpaceVelocity_var.angular.z;
+
+    // in_desiredTaskSpaceAcceleration_var_eig(0) = in_desiredTaskSpaceAcceleration_var.linear.x;
+    // in_desiredTaskSpaceAcceleration_var_eig(1) = in_desiredTaskSpaceAcceleration_var.linear.y;
+    // in_desiredTaskSpaceAcceleration_var_eig(2) = in_desiredTaskSpaceAcceleration_var.linear.z;
+    // in_desiredTaskSpaceAcceleration_var_eig(3) = in_desiredTaskSpaceAcceleration_var.angular.x;
+    // in_desiredTaskSpaceAcceleration_var_eig(4) = in_desiredTaskSpaceAcceleration_var.angular.y;
+    // in_desiredTaskSpaceAcceleration_var_eig(5) = in_desiredTaskSpaceAcceleration_var.angular.z;
+
+    if ((in_desiredTaskSpacePosition_flow != RTT::NoData) && (in_desiredTaskSpace_var.transforms.size() > 0))
+    {
+        in_desiredTaskSpacePosition_var_eig(0) = in_desiredTaskSpace_var.transforms[0].translation.x;
+        in_desiredTaskSpacePosition_var_eig(1) = in_desiredTaskSpace_var.transforms[0].translation.y;
+        in_desiredTaskSpacePosition_var_eig(2) = in_desiredTaskSpace_var.transforms[0].translation.z;
+        in_desiredTaskSpacePosition_var_eig(3) = in_desiredTaskSpace_var.transforms[0].rotation.w;
+        in_desiredTaskSpacePosition_var_eig(4) = in_desiredTaskSpace_var.transforms[0].rotation.x;
+        in_desiredTaskSpacePosition_var_eig(5) = in_desiredTaskSpace_var.transforms[0].rotation.y;
+        in_desiredTaskSpacePosition_var_eig(6) = in_desiredTaskSpace_var.transforms[0].rotation.z;
+        // RTT::log(RTT::Error) << "p = " << in_desiredTaskSpacePosition_var_eig << RTT::endlog();
+
+        in_desiredTaskSpaceVelocity_var_eig(0) = in_desiredTaskSpace_var.velocities[0].linear.x;
+        in_desiredTaskSpaceVelocity_var_eig(1) = in_desiredTaskSpace_var.velocities[0].linear.y;
+        in_desiredTaskSpaceVelocity_var_eig(2) = in_desiredTaskSpace_var.velocities[0].linear.z;
+        in_desiredTaskSpaceVelocity_var_eig(3) = in_desiredTaskSpace_var.velocities[0].angular.x;
+        in_desiredTaskSpaceVelocity_var_eig(4) = in_desiredTaskSpace_var.velocities[0].angular.y;
+        in_desiredTaskSpaceVelocity_var_eig(5) = in_desiredTaskSpace_var.velocities[0].angular.z;
+        // RTT::log(RTT::Error) << "v = " << in_desiredTaskSpaceVelocity_var_eig << RTT::endlog();
+
+        in_desiredTaskSpaceAcceleration_var_eig(0) = in_desiredTaskSpace_var.accelerations[0].linear.x;
+        in_desiredTaskSpaceAcceleration_var_eig(1) = in_desiredTaskSpace_var.accelerations[0].linear.y;
+        in_desiredTaskSpaceAcceleration_var_eig(2) = in_desiredTaskSpace_var.accelerations[0].linear.z;
+        in_desiredTaskSpaceAcceleration_var_eig(3) = in_desiredTaskSpace_var.accelerations[0].angular.x;
+        in_desiredTaskSpaceAcceleration_var_eig(4) = in_desiredTaskSpace_var.accelerations[0].angular.y;
+        in_desiredTaskSpaceAcceleration_var_eig(5) = in_desiredTaskSpace_var.accelerations[0].angular.z;
+        // RTT::log(RTT::Error) << "a = " << in_desiredTaskSpaceAcceleration_var_eig << RTT::endlog();
+    }
+
+
+
     in_currentTaskSpacePosition_flow = in_currentTaskSpacePosition_port.read(in_currentTaskSpacePosition_var);
 
     in_currentTaskSpaceVelocity_flow = in_currentTaskSpaceVelocity_port.read(in_currentTaskSpaceVelocity_var);
@@ -404,50 +456,6 @@ void RTTCartPIDController::updateHook()
     {
         hold_current_position = false;
     }
-
-    // in_desiredTaskSpacePosition_var_eig(0) = in_desiredTaskSpacePosition_var.position.x;
-    // in_desiredTaskSpacePosition_var_eig(1) = in_desiredTaskSpacePosition_var.position.y;
-    // in_desiredTaskSpacePosition_var_eig(2) = in_desiredTaskSpacePosition_var.position.z;
-    // in_desiredTaskSpacePosition_var_eig(3) = in_desiredTaskSpacePosition_var.orientation.w;
-    // in_desiredTaskSpacePosition_var_eig(4) = in_desiredTaskSpacePosition_var.orientation.x;
-    // in_desiredTaskSpacePosition_var_eig(5) = in_desiredTaskSpacePosition_var.orientation.y;
-    // in_desiredTaskSpacePosition_var_eig(6) = in_desiredTaskSpacePosition_var.orientation.z;
-
-    // in_desiredTaskSpaceVelocity_var_eig(0) = in_desiredTaskSpaceVelocity_var.linear.x;
-    // in_desiredTaskSpaceVelocity_var_eig(1) = in_desiredTaskSpaceVelocity_var.linear.y;
-    // in_desiredTaskSpaceVelocity_var_eig(2) = in_desiredTaskSpaceVelocity_var.linear.z;
-    // in_desiredTaskSpaceVelocity_var_eig(3) = in_desiredTaskSpaceVelocity_var.angular.x;
-    // in_desiredTaskSpaceVelocity_var_eig(4) = in_desiredTaskSpaceVelocity_var.angular.y;
-    // in_desiredTaskSpaceVelocity_var_eig(5) = in_desiredTaskSpaceVelocity_var.angular.z;
-
-    // in_desiredTaskSpaceAcceleration_var_eig(0) = in_desiredTaskSpaceAcceleration_var.linear.x;
-    // in_desiredTaskSpaceAcceleration_var_eig(1) = in_desiredTaskSpaceAcceleration_var.linear.y;
-    // in_desiredTaskSpaceAcceleration_var_eig(2) = in_desiredTaskSpaceAcceleration_var.linear.z;
-    // in_desiredTaskSpaceAcceleration_var_eig(3) = in_desiredTaskSpaceAcceleration_var.angular.x;
-    // in_desiredTaskSpaceAcceleration_var_eig(4) = in_desiredTaskSpaceAcceleration_var.angular.y;
-    // in_desiredTaskSpaceAcceleration_var_eig(5) = in_desiredTaskSpaceAcceleration_var.angular.z;
-
-    in_desiredTaskSpacePosition_var_eig(0) = in_desiredTaskSpace_var.transforms[0].translation.x;
-    in_desiredTaskSpacePosition_var_eig(1) = in_desiredTaskSpace_var.transforms[0].translation.y;
-    in_desiredTaskSpacePosition_var_eig(2) = in_desiredTaskSpace_var.transforms[0].translation.z;
-    in_desiredTaskSpacePosition_var_eig(3) = in_desiredTaskSpace_var.transforms[0].rotation.w;
-    in_desiredTaskSpacePosition_var_eig(4) = in_desiredTaskSpace_var.transforms[0].rotation.x;
-    in_desiredTaskSpacePosition_var_eig(5) = in_desiredTaskSpace_var.transforms[0].rotation.y;
-    in_desiredTaskSpacePosition_var_eig(6) = in_desiredTaskSpace_var.transforms[0].rotation.z;
-
-    in_desiredTaskSpaceVelocity_var_eig(0) = in_desiredTaskSpace_var.velocities[0].linear.x;
-    in_desiredTaskSpaceVelocity_var_eig(1) = in_desiredTaskSpace_var.velocities[0].linear.y;
-    in_desiredTaskSpaceVelocity_var_eig(2) = in_desiredTaskSpace_var.velocities[0].linear.z;
-    in_desiredTaskSpaceVelocity_var_eig(3) = in_desiredTaskSpace_var.velocities[0].angular.x;
-    in_desiredTaskSpaceVelocity_var_eig(4) = in_desiredTaskSpace_var.velocities[0].angular.y;
-    in_desiredTaskSpaceVelocity_var_eig(5) = in_desiredTaskSpace_var.velocities[0].angular.z;
-
-    in_desiredTaskSpaceAcceleration_var_eig(0) = in_desiredTaskSpace_var.accelerations[0].linear.x;
-    in_desiredTaskSpaceAcceleration_var_eig(1) = in_desiredTaskSpace_var.accelerations[0].linear.y;
-    in_desiredTaskSpaceAcceleration_var_eig(2) = in_desiredTaskSpace_var.accelerations[0].linear.z;
-    in_desiredTaskSpaceAcceleration_var_eig(3) = in_desiredTaskSpace_var.accelerations[0].angular.x;
-    in_desiredTaskSpaceAcceleration_var_eig(4) = in_desiredTaskSpace_var.accelerations[0].angular.y;
-    in_desiredTaskSpaceAcceleration_var_eig(5) = in_desiredTaskSpace_var.accelerations[0].angular.z;
 
     // TODO handle ill-sized dimensions of input data.
     if (in_desiredTaskSpacePosition_flow != RTT::NoData)
@@ -633,8 +641,10 @@ void RTTCartPIDController::updateHook()
     {
         if (!hold_current_position_last && noCommandReceivedBehaviorType == 1)
         {
-            RTT::log(RTT::Error) << "Holding current position until a command is received." << RTT::endlog();
             in_desiredTaskSpacePosition_var_eig = in_currentTaskSpacePosition_var;
+
+            RTT::log(RTT::Error) << "Holding current position until a command is received. " << in_desiredTaskSpacePosition_var_eig << RTT::endlog();
+
             //
             // in_desiredTaskSpaceVelocity_var = in_currentTaskSpaceVelocity_var;
             //
@@ -1308,10 +1318,18 @@ void RTTCartPIDController::preparePorts()
     //prepare input
     in_desiredTaskSpace_var = trajectory_msgs::MultiDOFJointTrajectoryPoint();
     in_desiredTaskSpace_var.transforms.push_back(geometry_msgs::Transform());
+    in_desiredTaskSpace_var.transforms[0].translation.x = 0;
+    in_desiredTaskSpace_var.transforms[0].translation.y = 0;
+    in_desiredTaskSpace_var.transforms[0].translation.z = 0;
+    in_desiredTaskSpace_var.transforms[0].rotation.w = 1;
+    in_desiredTaskSpace_var.transforms[0].rotation.x = 0;
+    in_desiredTaskSpace_var.transforms[0].rotation.y = 0;
+    in_desiredTaskSpace_var.transforms[0].rotation.z = 0;
     in_desiredTaskSpace_var.velocities.push_back(geometry_msgs::Twist());
     in_desiredTaskSpace_var.accelerations.push_back(geometry_msgs::Twist());
 
     in_desiredTaskSpacePosition_var_eig = Eigen::VectorXd::Zero(TaskSpaceQuaternionDimension);
+    in_desiredTaskSpacePosition_var_eig(3) = 1;
     in_desiredTaskSpacePosition_proxy = Eigen::VectorXd::Zero(TaskSpaceQuaternionDimension);
     // in_desiredTaskSpacePosition_var = geometry_msgs::Pose();
     // in_desiredTaskSpacePosition_var.position.x = 0;
