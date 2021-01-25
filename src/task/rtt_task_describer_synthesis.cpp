@@ -49,6 +49,8 @@ TaskDescriberSynthesis::TaskDescriberSynthesis(std::string const &name) : RTT::T
 
     addOperation("isNewCSReached", &TaskDescriberSynthesis::isNewCSReached, this);
 
+    addOperation("switchCSinSecs", &TaskDescriberSynthesis::switchCSinSecs, this);
+
     debug_pointintime = 0;
     addProperty("debug_pointintime", debug_pointintime);
 
@@ -77,6 +79,20 @@ TaskDescriberSynthesis::TaskDescriberSynthesis(std::string const &name) : RTT::T
     out_debug_pointintime_port.doc("Output port for sending the current point in time for the transition");
     out_debug_pointintime_port.setDataSample(debug_pointintime);
     ports()->addPort(out_debug_pointintime_port);
+}
+
+bool TaskDescriberSynthesis::switchCSinSecs(const std::string &cs_name, const double time_secs)
+{
+    if (this->hasPeer("prio"))
+    {
+        TaskContext* tc_prio = this->getPeer("prio");
+        tc_prio_activateContactSituationResetActivation = tc_prio->getOperation("activateContactSituationResetActivation"); // (const std::string &cs_name, const double time_secs)
+
+        tc_prio_activateContactSituationResetActivation(cs_name, time_secs);  
+    }
+    this->activateContactSituationResetActivation(cs_name, time_secs);
+
+    return true;
 }
 
 bool TaskDescriberSynthesis::loadYAMLConfig(const std::string &file)
@@ -654,6 +670,12 @@ bool TaskDescriberSynthesis::loadYAMLConfig(const std::string &file)
 bool TaskDescriberSynthesis::configureHook()
 {
     // intializations and object creations go here. Each component should run this before being able to run
+    if (this->hasPeer("prio"))
+    {
+        TaskContext* tc_prio = this->getPeer("prio");
+        tc_prio_activateContactSituationResetActivation = tc_prio->getOperation("activateContactSituationResetActivation"); // (const std::string &cs_name, const double time_secs)
+        RTT::log(RTT::Error) << "Task: connected to prio.activateContactSituationResetActivation" << RTT::endlog();
+    }
     return true;
 }
 

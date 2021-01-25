@@ -48,19 +48,19 @@ robot.connectToRobotByName("iiwa14_0", "bullet")
 robot.defineKinematicChain("iiwa14_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf", "world", "iiwa_link_ee")
 robot.configure()
 
-# var geometry_msgs.Pose cf = geometry_msgs.Pose()
-# cf.position.x = 0
-# cf.position.y = 0
-# cf.position.z = 0.15
-# cf.orientation.w = 1
-# cf.orientation.x = 0
-# cf.orientation.y = 0
-# cf.orientation.z = 0
+var geometry_msgs.Pose cf = geometry_msgs.Pose()
+cf.position.x = 0
+cf.position.y = -0.2
+cf.position.z = 0.4
+cf.orientation.w = 1
+cf.orientation.x = 0
+cf.orientation.y = 0
+cf.orientation.z = 0
 
 loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
 setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_RT,1)
-KinDyn.addChain("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee")
-# KinDyn.addChainWithCompliance("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee", cf)
+# KinDyn.addChain("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee")
+KinDyn.addChainWithWorldOffset("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee", cf)
 KinDyn.configure()
 
 
@@ -130,15 +130,7 @@ cartctrl.setGains(400,100)
 cartctrl.setGainsOrientation(30,2)
 
 
-###################################################
-########                Task               ########
-###################################################
-loadComponent("task","cosima::task::TaskDescriberSynthesis")
-setActivityOnCPU("task",0.001,90,ORO_SCHED_OTHER, 4)
-task.loadYAMLConfig("/home/flex/system/flexassembly_dev_ws/src/cosima-controller/scripts/test_constraint_no.yaml")
-task.configure()
-task.activateContactSituation("Folding_SR_0");
-task.debug_pointintime=1;
+
 
 ###################################################
 ########                Prio               ########
@@ -151,6 +143,16 @@ prio.setStartCS("Folding_SR_0")
 prio.setNewTargetCS("Folding_SR_0");
 prio.debug_pointintime=1;
 
+###################################################
+########                Task               ########
+###################################################
+loadComponent("task","cosima::task::TaskDescriberSynthesis")
+setActivityOnCPU("task",0.001,90,ORO_SCHED_OTHER, 4)
+task.loadYAMLConfig("/home/flex/system/flexassembly_dev_ws/src/cosima-controller/scripts/test_constraint_no.yaml")
+task.configure()
+task.activateContactSituation("Folding_SR_0");
+task.debug_pointintime=1;
+addPeer("task","prio")
 
 var ConnPolicy cp;
 
@@ -269,3 +271,5 @@ prio.start()
 
 # task.activateContactSituation("Folding_SR_2");
 # prio.setNewTargetCS("Folding_SR_2");
+
+# task.switchCSinSecs("Folding_SR_1", 0);
