@@ -45,6 +45,14 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Accel.h>
+
+#include <trajectory_msgs/MultiDOFJointTrajectoryPoint.h>
+#include <geometry_msgs/Transform.h>
+#include <geometry_msgs/Twist.h>
+
 namespace cosima
 {
 
@@ -126,9 +134,14 @@ namespace cosima
       // void setNS(const Eigen::VectorXd &nsp);
 
       // Declare input ports and their datatypes
-      RTT::InputPort<Eigen::VectorXd> in_desiredTaskSpacePosition_port;
-      RTT::InputPort<Eigen::VectorXd> in_desiredTaskSpaceVelocity_port;
-      RTT::InputPort<Eigen::VectorXd> in_desiredTaskSpaceAcceleration_port;
+      RTT::InputPort<trajectory_msgs::MultiDOFJointTrajectoryPoint> in_desiredTaskSpace_port;
+
+      // RTT::InputPort<geometry_msgs::Pose> in_desiredTaskSpacePosition_port;
+      // RTT::InputPort<geometry_msgs::Twist> in_desiredTaskSpaceVelocity_port;
+      // RTT::InputPort<geometry_msgs::Accel> in_desiredTaskSpaceAcceleration_port;
+      // RTT::InputPort<Eigen::VectorXd> in_desiredTaskSpacePosition_port;
+      // RTT::InputPort<Eigen::VectorXd> in_desiredTaskSpaceVelocity_port;
+      // RTT::InputPort<Eigen::VectorXd> in_desiredTaskSpaceAcceleration_port;
 
       RTT::InputPort<Eigen::VectorXd> in_currentTaskSpacePosition_port;
       RTT::InputPort<Eigen::VectorXd> in_currentTaskSpaceVelocity_port;
@@ -162,9 +175,19 @@ namespace cosima
       RTT::FlowStatus in_projection_flow;
       RTT::FlowStatus in_projectionDot_flow;
 
-      Eigen::VectorXd in_desiredTaskSpacePosition_var;
-      Eigen::VectorXd in_desiredTaskSpaceVelocity_var;
-      Eigen::VectorXd in_desiredTaskSpaceAcceleration_var;
+      // geometry_msgs::Pose in_desiredTaskSpacePosition_var;
+      // geometry_msgs::Twist in_desiredTaskSpaceVelocity_var;
+      // geometry_msgs::Accel in_desiredTaskSpaceAcceleration_var;
+
+      trajectory_msgs::MultiDOFJointTrajectoryPoint in_desiredTaskSpace_var;
+
+      // Eigen::VectorXd in_desiredTaskSpacePosition_var;
+      // Eigen::VectorXd in_desiredTaskSpaceVelocity_var;
+      // Eigen::VectorXd in_desiredTaskSpaceAcceleration_var;
+      Eigen::VectorXd in_desiredTaskSpacePosition_var_eig;
+      Eigen::VectorXd in_desiredTaskSpaceVelocity_var_eig;
+      Eigen::VectorXd in_desiredTaskSpaceAcceleration_var_eig;
+      //
       Eigen::VectorXd in_currentTaskSpacePosition_var;
       Eigen::VectorXd in_currentTaskSpaceVelocity_var;
       sensor_msgs::JointState in_robotstatus_var;

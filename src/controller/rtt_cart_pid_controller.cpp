@@ -209,6 +209,7 @@ bool RTTCartPIDController::loadYAMLConfig(const std::string &myname, const std::
     }
 
     // this->calculateTotalDofs();
+    return true;
 }
 
 void RTTCartPIDController::addRobot(unsigned int task_dof, unsigned int joint_dof)
@@ -361,11 +362,10 @@ bool RTTCartPIDController::startHook()
 void RTTCartPIDController::updateHook()
 {
     // Read data from mandatory ports
-    in_desiredTaskSpacePosition_flow = in_desiredTaskSpacePosition_port.read(in_desiredTaskSpacePosition_var);
-
-    in_desiredTaskSpaceVelocity_flow = in_desiredTaskSpaceVelocity_port.read(in_desiredTaskSpaceVelocity_var);
-
-    in_desiredTaskSpaceAcceleration_flow = in_desiredTaskSpaceAcceleration_port.read(in_desiredTaskSpaceAcceleration_var);
+    in_desiredTaskSpacePosition_flow = in_desiredTaskSpace_port.read(in_desiredTaskSpace_var);
+    // in_desiredTaskSpacePosition_flow = in_desiredTaskSpacePosition_port.read(in_desiredTaskSpacePosition_var);
+    // in_desiredTaskSpaceVelocity_flow = in_desiredTaskSpaceVelocity_port.read(in_desiredTaskSpaceVelocity_var);
+    // in_desiredTaskSpaceAcceleration_flow = in_desiredTaskSpaceAcceleration_port.read(in_desiredTaskSpaceAcceleration_var);
 
     in_currentTaskSpacePosition_flow = in_currentTaskSpacePosition_port.read(in_currentTaskSpacePosition_var);
 
@@ -405,39 +405,83 @@ void RTTCartPIDController::updateHook()
         hold_current_position = false;
     }
 
+    // in_desiredTaskSpacePosition_var_eig(0) = in_desiredTaskSpacePosition_var.position.x;
+    // in_desiredTaskSpacePosition_var_eig(1) = in_desiredTaskSpacePosition_var.position.y;
+    // in_desiredTaskSpacePosition_var_eig(2) = in_desiredTaskSpacePosition_var.position.z;
+    // in_desiredTaskSpacePosition_var_eig(3) = in_desiredTaskSpacePosition_var.orientation.w;
+    // in_desiredTaskSpacePosition_var_eig(4) = in_desiredTaskSpacePosition_var.orientation.x;
+    // in_desiredTaskSpacePosition_var_eig(5) = in_desiredTaskSpacePosition_var.orientation.y;
+    // in_desiredTaskSpacePosition_var_eig(6) = in_desiredTaskSpacePosition_var.orientation.z;
+
+    // in_desiredTaskSpaceVelocity_var_eig(0) = in_desiredTaskSpaceVelocity_var.linear.x;
+    // in_desiredTaskSpaceVelocity_var_eig(1) = in_desiredTaskSpaceVelocity_var.linear.y;
+    // in_desiredTaskSpaceVelocity_var_eig(2) = in_desiredTaskSpaceVelocity_var.linear.z;
+    // in_desiredTaskSpaceVelocity_var_eig(3) = in_desiredTaskSpaceVelocity_var.angular.x;
+    // in_desiredTaskSpaceVelocity_var_eig(4) = in_desiredTaskSpaceVelocity_var.angular.y;
+    // in_desiredTaskSpaceVelocity_var_eig(5) = in_desiredTaskSpaceVelocity_var.angular.z;
+
+    // in_desiredTaskSpaceAcceleration_var_eig(0) = in_desiredTaskSpaceAcceleration_var.linear.x;
+    // in_desiredTaskSpaceAcceleration_var_eig(1) = in_desiredTaskSpaceAcceleration_var.linear.y;
+    // in_desiredTaskSpaceAcceleration_var_eig(2) = in_desiredTaskSpaceAcceleration_var.linear.z;
+    // in_desiredTaskSpaceAcceleration_var_eig(3) = in_desiredTaskSpaceAcceleration_var.angular.x;
+    // in_desiredTaskSpaceAcceleration_var_eig(4) = in_desiredTaskSpaceAcceleration_var.angular.y;
+    // in_desiredTaskSpaceAcceleration_var_eig(5) = in_desiredTaskSpaceAcceleration_var.angular.z;
+
+    in_desiredTaskSpacePosition_var_eig(0) = in_desiredTaskSpace_var.transforms[0].translation.x;
+    in_desiredTaskSpacePosition_var_eig(1) = in_desiredTaskSpace_var.transforms[0].translation.y;
+    in_desiredTaskSpacePosition_var_eig(2) = in_desiredTaskSpace_var.transforms[0].translation.z;
+    in_desiredTaskSpacePosition_var_eig(3) = in_desiredTaskSpace_var.transforms[0].rotation.w;
+    in_desiredTaskSpacePosition_var_eig(4) = in_desiredTaskSpace_var.transforms[0].rotation.x;
+    in_desiredTaskSpacePosition_var_eig(5) = in_desiredTaskSpace_var.transforms[0].rotation.y;
+    in_desiredTaskSpacePosition_var_eig(6) = in_desiredTaskSpace_var.transforms[0].rotation.z;
+
+    in_desiredTaskSpaceVelocity_var_eig(0) = in_desiredTaskSpace_var.velocities[0].linear.x;
+    in_desiredTaskSpaceVelocity_var_eig(1) = in_desiredTaskSpace_var.velocities[0].linear.y;
+    in_desiredTaskSpaceVelocity_var_eig(2) = in_desiredTaskSpace_var.velocities[0].linear.z;
+    in_desiredTaskSpaceVelocity_var_eig(3) = in_desiredTaskSpace_var.velocities[0].angular.x;
+    in_desiredTaskSpaceVelocity_var_eig(4) = in_desiredTaskSpace_var.velocities[0].angular.y;
+    in_desiredTaskSpaceVelocity_var_eig(5) = in_desiredTaskSpace_var.velocities[0].angular.z;
+
+    in_desiredTaskSpaceAcceleration_var_eig(0) = in_desiredTaskSpace_var.accelerations[0].linear.x;
+    in_desiredTaskSpaceAcceleration_var_eig(1) = in_desiredTaskSpace_var.accelerations[0].linear.y;
+    in_desiredTaskSpaceAcceleration_var_eig(2) = in_desiredTaskSpace_var.accelerations[0].linear.z;
+    in_desiredTaskSpaceAcceleration_var_eig(3) = in_desiredTaskSpace_var.accelerations[0].angular.x;
+    in_desiredTaskSpaceAcceleration_var_eig(4) = in_desiredTaskSpace_var.accelerations[0].angular.y;
+    in_desiredTaskSpaceAcceleration_var_eig(5) = in_desiredTaskSpace_var.accelerations[0].angular.z;
+
     // TODO handle ill-sized dimensions of input data.
     if (in_desiredTaskSpacePosition_flow != RTT::NoData)
     {
-        if (in_desiredTaskSpacePosition_var.rows() != TaskSpaceQuaternionDimension)
-        {
-            // RTT::log(RTT::Error) << "ERROR in_desiredTaskSpacePosition_var " << in_desiredTaskSpacePosition_var << RTT::endlog();
-        }
-        if (in_desiredTaskSpacePosition_var.cols() != 1)
-        {
-            // RTT::log(RTT::Error) << "ERROR in_desiredTaskSpacePosition_var " << in_desiredTaskSpacePosition_var << RTT::endlog();
-        }
+        // if (in_desiredTaskSpacePosition_var.rows() != TaskSpaceQuaternionDimension)
+        // {
+        //     // RTT::log(RTT::Error) << "ERROR in_desiredTaskSpacePosition_var " << in_desiredTaskSpacePosition_var << RTT::endlog();
+        // }
+        // if (in_desiredTaskSpacePosition_var.cols() != 1)
+        // {
+        //     // RTT::log(RTT::Error) << "ERROR in_desiredTaskSpacePosition_var " << in_desiredTaskSpacePosition_var << RTT::endlog();
+        // }
     }
     if (in_desiredTaskSpaceVelocity_flow != RTT::NoData)
     {
-        if (in_desiredTaskSpaceVelocity_var.rows() != TaskSpaceDimension)
-        {
-            // RTT::log(RTT::Error) << "ERROR in_desiredTaskSpaceVelocity_var " << in_desiredTaskSpaceVelocity_var << RTT::endlog();
-        }
-        if (in_desiredTaskSpaceVelocity_var.cols() != 1)
-        {
-            // RTT::log(RTT::Error) << "ERROR in_desiredTaskSpaceVelocity_var " << in_desiredTaskSpaceVelocity_var << RTT::endlog();
-        }
+        // if (in_desiredTaskSpaceVelocity_var.rows() != TaskSpaceDimension)
+        // {
+        //     // RTT::log(RTT::Error) << "ERROR in_desiredTaskSpaceVelocity_var " << in_desiredTaskSpaceVelocity_var << RTT::endlog();
+        // }
+        // if (in_desiredTaskSpaceVelocity_var.cols() != 1)
+        // {
+        //     // RTT::log(RTT::Error) << "ERROR in_desiredTaskSpaceVelocity_var " << in_desiredTaskSpaceVelocity_var << RTT::endlog();
+        // }
     }
     if (in_desiredTaskSpaceAcceleration_flow != RTT::NoData)
     {
-        if (in_desiredTaskSpaceAcceleration_var.rows() != TaskSpaceDimension)
-        {
-            // RTT::log(RTT::Error) << "ERROR in_desiredTaskSpaceAcceleration_var " << in_desiredTaskSpaceAcceleration_var << RTT::endlog();
-        }
-        if (in_desiredTaskSpaceAcceleration_var.cols() != 1)
-        {
-            // RTT::log(RTT::Error) << "ERROR in_desiredTaskSpaceAcceleration_var " << in_desiredTaskSpaceAcceleration_var << RTT::endlog();
-        }
+        // if (in_desiredTaskSpaceAcceleration_var.rows() != TaskSpaceDimension)
+        // {
+        //     // RTT::log(RTT::Error) << "ERROR in_desiredTaskSpaceAcceleration_var " << in_desiredTaskSpaceAcceleration_var << RTT::endlog();
+        // }
+        // if (in_desiredTaskSpaceAcceleration_var.cols() != 1)
+        // {
+        //     // RTT::log(RTT::Error) << "ERROR in_desiredTaskSpaceAcceleration_var " << in_desiredTaskSpaceAcceleration_var << RTT::endlog();
+        // }
     }
 
     // Return and do not calculate a robot command if mandatory data is missing.
@@ -590,11 +634,14 @@ void RTTCartPIDController::updateHook()
         if (!hold_current_position_last && noCommandReceivedBehaviorType == 1)
         {
             RTT::log(RTT::Error) << "Holding current position until a command is received." << RTT::endlog();
-            in_desiredTaskSpacePosition_var = in_currentTaskSpacePosition_var;
+            in_desiredTaskSpacePosition_var_eig = in_currentTaskSpacePosition_var;
+            //
             // in_desiredTaskSpaceVelocity_var = in_currentTaskSpaceVelocity_var;
-            in_desiredTaskSpaceVelocity_var.setZero();
-            in_desiredTaskSpacePosition_proxy = in_desiredTaskSpacePosition_var;
-            in_desiredTaskSpaceAcceleration_var.setZero();
+            //
+            in_desiredTaskSpaceVelocity_var_eig.setZero();
+            //
+            in_desiredTaskSpacePosition_proxy = in_desiredTaskSpacePosition_var_eig;
+            in_desiredTaskSpaceAcceleration_var_eig.setZero();
         }
         else if (noCommandReceivedBehaviorType == 2)
         {
@@ -612,9 +659,9 @@ void RTTCartPIDController::updateHook()
     hold_current_position_last = hold_current_position;
 
     // Compute the actual robot command.
-    this->compute(in_desiredTaskSpacePosition_var,
-                  in_desiredTaskSpaceVelocity_var,
-                  in_desiredTaskSpaceAcceleration_var,
+    this->compute(in_desiredTaskSpacePosition_var_eig,
+                  in_desiredTaskSpaceVelocity_var_eig,
+                  in_desiredTaskSpaceAcceleration_var_eig,
                   in_currentTaskSpacePosition_var,
                   in_currentTaskSpaceVelocity_var,
                   in_robotstatus_var,
@@ -1259,30 +1306,60 @@ void RTTCartPIDController::preparePorts()
     }
 
     //prepare input
-    in_desiredTaskSpacePosition_var = Eigen::VectorXd::Zero(TaskSpaceQuaternionDimension);
+    in_desiredTaskSpace_var = trajectory_msgs::MultiDOFJointTrajectoryPoint();
+    in_desiredTaskSpace_var.transforms.push_back(geometry_msgs::Transform());
+    in_desiredTaskSpace_var.velocities.push_back(geometry_msgs::Twist());
+    in_desiredTaskSpace_var.accelerations.push_back(geometry_msgs::Twist());
+
+    in_desiredTaskSpacePosition_var_eig = Eigen::VectorXd::Zero(TaskSpaceQuaternionDimension);
     in_desiredTaskSpacePosition_proxy = Eigen::VectorXd::Zero(TaskSpaceQuaternionDimension);
-    in_desiredTaskSpacePosition_port.setName(
-        "in_desiredTaskSpacePosition_port");
-    in_desiredTaskSpacePosition_port.doc(
-        "Input port for reading the desired position from Trajectory Generator");
-    ports()->addPort(in_desiredTaskSpacePosition_port);
+    // in_desiredTaskSpacePosition_var = geometry_msgs::Pose();
+    // in_desiredTaskSpacePosition_var.position.x = 0;
+    // in_desiredTaskSpacePosition_var.position.y = 0;
+    // in_desiredTaskSpacePosition_var.position.z = 0;
+    // in_desiredTaskSpacePosition_var.orientation.w = 1;
+    // in_desiredTaskSpacePosition_var.orientation.x = 0;
+    // in_desiredTaskSpacePosition_var.orientation.y = 0;
+    // in_desiredTaskSpacePosition_var.orientation.z = 0;
+    // in_desiredTaskSpacePosition_port.setName(
+    //     "in_desiredTaskSpacePosition_port");
+    // in_desiredTaskSpacePosition_port.doc(
+    //     "Input port for reading the desired position from Trajectory Generator");
+    // ports()->addPort(in_desiredTaskSpacePosition_port);
+    in_desiredTaskSpace_port.setName(
+        "in_desiredTaskSpace_port");
+    in_desiredTaskSpace_port.doc(
+        "Input port for reading the desired position, velocity, and acceleration from a Trajectory Generator");
+    ports()->addPort(in_desiredTaskSpace_port);
     in_desiredTaskSpacePosition_flow = RTT::NoData;
 
-    in_desiredTaskSpaceVelocity_var = Eigen::VectorXd::Zero(TaskSpaceDimension);
-    in_desiredTaskSpaceVelocity_port.setName(
-        "in_desiredTaskSpaceVelocity_port");
-    in_desiredTaskSpaceVelocity_port.doc(
-        "Input port for reading the desired velocity from Trajectory Generator");
-    ports()->addPort(in_desiredTaskSpaceVelocity_port);
-    in_desiredTaskSpaceVelocity_flow = RTT::NoData;
+    in_desiredTaskSpaceVelocity_var_eig = Eigen::VectorXd::Zero(TaskSpaceDimension);
+    // in_desiredTaskSpaceVelocity_var.linear.x = 0;
+    // in_desiredTaskSpaceVelocity_var.linear.y = 0;
+    // in_desiredTaskSpaceVelocity_var.linear.z = 0;
+    // in_desiredTaskSpaceVelocity_var.angular.x = 0;
+    // in_desiredTaskSpaceVelocity_var.angular.y = 0;
+    // in_desiredTaskSpaceVelocity_var.angular.z = 0;
+    // in_desiredTaskSpaceVelocity_port.setName(
+    //     "in_desiredTaskSpaceVelocity_port");
+    // in_desiredTaskSpaceVelocity_port.doc(
+    //     "Input port for reading the desired velocity from Trajectory Generator");
+    // ports()->addPort(in_desiredTaskSpaceVelocity_port);
+    // in_desiredTaskSpaceVelocity_flow = RTT::NoData;
 
-    in_desiredTaskSpaceAcceleration_var = Eigen::VectorXd::Zero(TaskSpaceDimension);
-    in_desiredTaskSpaceAcceleration_port.setName(
-        "in_desiredTaskSpaceAcceleration_port");
-    in_desiredTaskSpaceAcceleration_port.doc(
-        "Input port for reading the desired acceleration from Trajectory Generator");
-    ports()->addPort(in_desiredTaskSpaceAcceleration_port);
-    in_desiredTaskSpaceAcceleration_flow = RTT::NoData;
+    in_desiredTaskSpaceAcceleration_var_eig = Eigen::VectorXd::Zero(TaskSpaceDimension);
+    // in_desiredTaskSpaceAcceleration_var.linear.x = 0;
+    // in_desiredTaskSpaceAcceleration_var.linear.y = 0;
+    // in_desiredTaskSpaceAcceleration_var.linear.z = 0;
+    // in_desiredTaskSpaceAcceleration_var.angular.x = 0;
+    // in_desiredTaskSpaceAcceleration_var.angular.y = 0;
+    // in_desiredTaskSpaceAcceleration_var.angular.z = 0;
+    // in_desiredTaskSpaceAcceleration_port.setName(
+    //     "in_desiredTaskSpaceAcceleration_port");
+    // in_desiredTaskSpaceAcceleration_port.doc(
+    //     "Input port for reading the desired acceleration from Trajectory Generator");
+    // ports()->addPort(in_desiredTaskSpaceAcceleration_port);
+    // in_desiredTaskSpaceAcceleration_flow = RTT::NoData;
 
     in_currentTaskSpacePosition_var = Eigen::VectorXd::Zero(TaskSpaceQuaternionDimension);
     in_currentTaskSpacePosition_port.setName(
@@ -1397,12 +1474,14 @@ void RTTCartPIDController::displayStatus()
                          << position << RTT::endlog();
     RTT::log(RTT::Error) << "in_robotstatus_var.velocities \n"
                          << velocity << RTT::endlog();
-    RTT::log(RTT::Error) << "in_desiredTaskSpacePosition_var \n"
-                         << in_desiredTaskSpacePosition_var << RTT::endlog();
-    RTT::log(RTT::Error) << "in_desiredTaskSpaceVelocity_var \n"
-                         << in_desiredTaskSpaceVelocity_var << RTT::endlog();
-    RTT::log(RTT::Error) << "in_desiredTaskSpaceAcceleration_var \n"
-                         << in_desiredTaskSpaceAcceleration_var << RTT::endlog();
+    // RTT::log(RTT::Error) << "in_desiredTaskSpacePosition_var \n"
+    //                      << in_desiredTaskSpacePosition_var << RTT::endlog();
+    // RTT::log(RTT::Error) << "in_desiredTaskSpaceVelocity_var \n"
+    //                      << in_desiredTaskSpaceVelocity_var << RTT::endlog();
+    // RTT::log(RTT::Error) << "in_desiredTaskSpaceAcceleration_var \n"
+    //                      << in_desiredTaskSpaceAcceleration_var << RTT::endlog();
+    RTT::log(RTT::Error) << "in_desiredTaskSpace_var \n"
+                         << in_desiredTaskSpace_var << RTT::endlog();
 
     RTT::log(RTT::Error) << "in_currentTaskSpacePosition_var \n"
                          << in_currentTaskSpacePosition_var << RTT::endlog();
@@ -1476,23 +1555,29 @@ void RTTCartPIDController::checkConnections()
                             << RTT::endlog();
     }
 
-    if (!in_desiredTaskSpacePosition_port.connected())
+    if (!in_desiredTaskSpace_port.connected())
     {
-        RTT::log(RTT::Info) << "in_desiredTaskSpacePosition_port not connected"
+        RTT::log(RTT::Info) << "in_desiredTaskSpace_port not connected"
                             << RTT::endlog();
     }
 
-    if (!in_desiredTaskSpaceVelocity_port.connected())
-    {
-        RTT::log(RTT::Info) << "in_desiredTaskSpaceVelocity_port not connected"
-                            << RTT::endlog();
-    }
+    // if (!in_desiredTaskSpacePosition_port.connected())
+    // {
+    //     RTT::log(RTT::Info) << "in_desiredTaskSpacePosition_port not connected"
+    //                         << RTT::endlog();
+    // }
 
-    if (!in_desiredTaskSpaceAcceleration_port.connected())
-    {
-        RTT::log(RTT::Info) << "in_desiredTaskSpaceAcceleration_port not connected"
-                            << RTT::endlog();
-    }
+    // if (!in_desiredTaskSpaceVelocity_port.connected())
+    // {
+    //     RTT::log(RTT::Info) << "in_desiredTaskSpaceVelocity_port not connected"
+    //                         << RTT::endlog();
+    // }
+
+    // if (!in_desiredTaskSpaceAcceleration_port.connected())
+    // {
+    //     RTT::log(RTT::Info) << "in_desiredTaskSpaceAcceleration_port not connected"
+    //                         << RTT::endlog();
+    // }
 
     if (!in_currentTaskSpacePosition_port.connected())
     {

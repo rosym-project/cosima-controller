@@ -231,6 +231,8 @@ stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints
 
 stream("robot.out_iiwa14_0_jointstate_fdb", ros.topic("/joint_state_publisher/joint_states"))
 
+stream("cartctrl.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
+
 # stream("traj.in_pose_port", ros.topic("/traj"))
 
 robot.setControlMode("iiwa14_0", "JointTorqueCtrl")
