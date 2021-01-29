@@ -1,0 +1,63 @@
+---
+####################
+# Control Objectives
+####################
+RootControlObjectives:
+  - Robot: RobotKukaLeft
+    JointDof: 7
+    ControlObjectives:
+      - Name: RobotKukaLeft_motion_tracking
+        Robot: RobotKukaLeft
+        OperationalFrame: {Type: Link, Name: lwr_tool_link, Dof: 6}
+      - Name: RobotKukaLeft_nullspace_tracking
+        Robot: RobotKukaLeft
+        OperationalFrame: {Type: Chain, Name: full_arm, Dof: 7}
+      - Name: RobotKukaLeft_force_constraint
+        Robot: RobotKukaLeft
+        OperationalFrame: {Type: Link, Name: lwr_tool_link, Dof: 6}
+    ContactSituations:
+      - Name: Folding_SR_0
+        Filters:
+          - RobotKukaLeft_motion_tracking: Filter_Identity
+          - RobotKukaLeft_nullspace_tracking: Filter_Identity
+          - RobotKukaLeft_force_constraint: Filter_Identity
+        PrioritizationMatrix: [
+          [RobotKukaLeft_motion_tracking, RobotKukaLeft_nullspace_tracking, RobotKukaLeft_force_constraint], [1, 1, 0], [0, 0, 0], [1, 1, 1]
+        ]
+      - Name: Folding_SR_1
+        Filters:
+          - RobotKukaLeft_motion_tracking: Filter_Identity
+          - RobotKukaLeft_nullspace_tracking: Filter_Identity
+          - RobotKukaLeft_force_constraint: Filter_Identity
+        PrioritizationMatrix: [
+          [RobotKukaLeft_motion_tracking, RobotKukaLeft_nullspace_tracking, RobotKukaLeft_force_constraint], [0, 0, 0], [1, 0, 0], [1, 1, 1]
+        ]
+      - Name: Folding_SR_2
+        Filters:
+          - RobotKukaLeft_motion_tracking: "Filter:Folding_SR_1:RobotKukaLeft:lwr_tool_link:M:3935613358947595722"
+          - RobotKukaLeft_nullspace_tracking: Filter_Identity
+          - RobotKukaLeft_force_constraint: "Filter:Folding_SR_1:RobotKukaLeft:lwr_tool_link:C:3935613358947595722"
+        PrioritizationMatrix: [
+          [RobotKukaLeft_motion_tracking, RobotKukaLeft_nullspace_tracking, RobotKukaLeft_force_constraint], [0, 0, 1], [1, 0, 1], [0, 0, 0]
+        ]
+#########
+# Filters
+#########
+Filters:
+  - Filter: "Filter:Folding_SR_1:RobotKukaLeft:lwr_tool_link:M:3935613358947595722"
+    Type: ComponentWise
+    Data: [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]]
+  - Filter: "Filter:Folding_SR_1:RobotKukaLeft:lwr_tool_link:C:3935613358947595722"
+    Type: ComponentWise
+    Data: [[1.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
+###########
+# Port Maps
+###########
+PortMaps:
+  Prioritization:
+    - Name: motion_tracking_1
+      ControlObjectives: [RobotKukaLeft_motion_tracking]
+    - Name: nullspace_tracking_1
+      ControlObjectives: [RobotKukaLeft_nullspace_tracking]
+    - Name: force_constraint_1
+      ControlObjectives: [RobotKukaLeft_force_constraint]
