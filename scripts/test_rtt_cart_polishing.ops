@@ -126,8 +126,13 @@ setActivityOnCPU("cartctrl",0.001,11,ORO_SCHED_RT,3)
 cartctrl.addRobot(6, 7);
 cartctrl.preparePorts();
 cartctrl.configure();
-cartctrl.setGains(400,100)
-cartctrl.setGainsOrientation(30,2)
+cartctrl.setGains(400,150)
+cartctrl.setGainsOrientation(500,200)
+
+
+cartctrl.useTSgravitycompensation(true)
+cartctrl.addJSgravitycompensation(false)
+cartctrl.impedanceCTRL = false
 
 
 
@@ -146,7 +151,7 @@ forcedir[4] = 0;
 forcedir[5] = 0;
 fctrl.setConstantForceVector(forcedir);
 # fctrl.setConstantForce(-30); # TODO DLW check this!
-fctrl.setConstantForce(30); # TODO
+fctrl.setConstantForce(50); # TODO
 
 # In this case it means that we need to compensate for the EEF which are 0.5 Kg so -4~-5N In case of 0 we 
 fctrl.configure()
