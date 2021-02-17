@@ -266,12 +266,38 @@ connect("prio.out_torques_port", "robot.in_iiwa14_0_JointTorqueCtrl_cmd", cp)
 # connect("cartctrl.out_torques_port","robot.in_iiwa14_0_JointTorqueCtrl_cmd", cp)
 
 
+################################
+ros.import("iHQP_SoT_package")
+loadComponent("sot", "QPSoT_Component")
+setActivityOnCPU("sot",0.001,90,ORO_SCHED_OTHER, 4)
+#
+var string config_path = "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/configs/iiwa14-camera-tmp.yaml"
+sot.loadConfig(config_path)
+
+connect("KinDyn.out_coriolisAndGravity_port", "sot.in_coriolisAndGravity_port", cp)
+# in_desiredTaskSpace_port
+connect("KinDyn.out_robotstatus_port", "sot.in_robotstatus_port", cp)
+### We would need a switch here!
+connect("sot.out_torques_port","robot.in_iiwa14_0_JointTorqueCtrl_cmd", cp)
+sot.configure()
+sot.gravCompDamp = 1
+sot.setJntPosture(0,0.0)
+sot.setJntPosture(1,0.126)
+sot.setJntPosture(2,0.0)
+sot.setJntPosture(3,-0.884)
+sot.setJntPosture(4,0.0)
+sot.setJntPosture(5,0.632)
+sot.setJntPosture(6,0.0)
+################################
+
 # STREAMS
 stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints"))
 
 stream("robot.out_iiwa14_0_jointstate_fdb", ros.topic("/joint_state_publisher/joint_states"))
 
 stream("cartctrl.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
+
+stream("sot.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
 
 # stream("traj.in_pose_port", ros.topic("/traj"))
 
@@ -287,6 +313,8 @@ fctrl.start()
 task.start()
 prio.start()
 
+# prio.stop();
+# sot.start();
 
 
 # jconfig[0]=1.57
