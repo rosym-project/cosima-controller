@@ -35,7 +35,7 @@ using namespace cosima;
 using namespace prioritization;
 using namespace util;
 
-DynamicTaskPrioritization::DynamicTaskPrioritization(std::string const &name) : RTT::TaskContext(name), portsArePrepared(false)
+DynamicTaskPrioritization::DynamicTaskPrioritization(std::string const &name) : RTT::TaskContext(name), portsArePrepared(false), substract_gravity(false)
 {
     //prepare operations
     // addOperation("setDOFsize", &DynamicTaskPrioritization::setDOFsize, this).doc("set DOF size");
@@ -53,6 +53,8 @@ DynamicTaskPrioritization::DynamicTaskPrioritization(std::string const &name) : 
     addOperation("debug_print_state", &DynamicTaskPrioritization::debug_print_state, this);
 
     addOperation("isNewCSReached", &DynamicTaskPrioritization::isNewCSReached, this);
+
+    addProperty("substract_gravity", this->substract_gravity);
 
     debug_pointintime = 0;
 
@@ -989,10 +991,18 @@ void DynamicTaskPrioritization::updateHook()
     if (debug_switch_to_manual)
     {
         out_torques_var += in_coriolisAndGravity_var;
+        if (this->substract_gravity)
+        {
+            out_torques_var -= in_coriolisAndGravity_var;
+        }
         out_torques_port.write(out_torques_var);
     }
     else
     {
+        if (this->substract_gravity)
+        {
+            out_torques_var -= in_coriolisAndGravity_var;
+        }
         out_torques_port.write(out_torques_var); // + in_coriolisAndGravity_var;
     }
     // }

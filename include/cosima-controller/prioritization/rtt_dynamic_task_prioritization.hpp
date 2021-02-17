@@ -182,6 +182,8 @@ namespace cosima
       //
       bool new_cs_reached_;
       bool isNewCSReached();
+
+      bool substract_gravity;
     };
 
   } // namespace prioritization

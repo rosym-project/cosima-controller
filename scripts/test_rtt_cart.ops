@@ -48,6 +48,9 @@ robot.connectToRobotByName("iiwa14_0", "bullet")
 robot.defineKinematicChain("iiwa14_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf", "world", "iiwa_link_ee")
 robot.configure()
 
+# Make it closer to the real robot! Might decrease the overall accuracy...
+robot.addArtificialGravity("iiwa14_0", true)
+
 var geometry_msgs.Pose cf = geometry_msgs.Pose()
 cf.position.x = 0
 cf.position.y = -0.2
@@ -63,12 +66,15 @@ setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_RT,1)
 KinDyn.addChainWithWorldOffset("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee", cf)
 KinDyn.configure()
 
+KinDyn.ext_override = 0
+
 
 loadComponent("jspdctrl", "cosima::controller::RTTJointPDCtrl")
 setActivityOnCPU("jspdctrl",0.001,10,ORO_SCHED_RT,2)
 jspdctrl.addRobot(7)
 jspdctrl.configure()
 jspdctrl.setGains(200,80)
+jspdctrl.include_gravity=true
 
 # KinDyn.ext_override=0
 
@@ -137,7 +143,8 @@ cartctrl.configure();
 cartctrl.setGains(400,100)
 cartctrl.setGainsOrientation(30,2)
 
-
+cartctrl.addJSgravitycompensation(false)
+cartctrl.useTSgravitycompensation(true)
 
 
 ###################################################
@@ -150,6 +157,8 @@ prio.configure()
 prio.setStartCS("Folding_SR_0")
 prio.setNewTargetCS("Folding_SR_0");
 prio.debug_pointintime=1;
+
+prio.substract_gravity=true
 
 ###################################################
 ########                Task               ########
@@ -171,7 +180,7 @@ var ConnPolicy cp;
 
 # # # Use a proxy connection via the KinDyn component
 connect("robot.out_iiwa14_0_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
-connect("robot.out_iiwa14_0_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
+# connect("robot.out_iiwa14_0_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
 connect("robot.out_iiwa14_0_inertia_fdb","KinDyn.in_inertia_0_port",cp)
 
 # TASK
@@ -273,13 +282,16 @@ prio.start()
 # jconfig[6]=0.0
 # jspdctrl.setPositionCmd(jconfig)
 
+# # JS
 # task.activateContactSituation("Folding_SR_0");
 # prio.setNewTargetCS("Folding_SR_0");
 
+# # only TS
 # task.activateContactSituation("Folding_SR_1");
 # prio.setNewTargetCS("Folding_SR_1");
 
+# # TS and JS
 # task.activateContactSituation("Folding_SR_2");
 # prio.setNewTargetCS("Folding_SR_2");
 
-# task.switchCSinSecs("Folding_SR_1", 0);
+# task.switchCSinSecs("Folding_SR_2", 0);
