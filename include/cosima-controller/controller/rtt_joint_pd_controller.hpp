@@ -103,7 +103,7 @@ namespace cosima
       // This might be useful to deactivate,
       // if another component down the seanse-react chain,
       // adds the gravity component at the very end.
-      // bool include_gravity;
+      bool include_gravity;
 
       double kp, kd;
 

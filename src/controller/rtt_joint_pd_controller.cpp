@@ -32,13 +32,13 @@
 using namespace cosima;
 using namespace controller;
 
-RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : RTT::TaskContext(name), total_dof_size(0), useFilter(true) //, include_gravity(true)
+RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : RTT::TaskContext(name), total_dof_size(0), useFilter(true), include_gravity(true)
 {
     addOperation("addRobot", &RTTJointPDCtrl::addRobot, this)
         .doc("Add a robot in terms of the sequential (controlled) DoF")
         .arg("dof", "degrees of freedom");
-    // addProperty("include_gravity", this->include_gravity)
-    //     .doc("Include the gravity term in the commanded torques (default: true).");
+    addProperty("include_gravity", this->include_gravity)
+        .doc("Include the gravity term in the commanded torques (default: true).");
 
     addOperation("setGains", &RTTJointPDCtrl::setGains, this);
     addOperation("setPositionCmd", &RTTJointPDCtrl::setPositionCmd, this);
@@ -258,7 +258,11 @@ void RTTJointPDCtrl::updateHook()
     // Solver alternative: Slow but very accurate
     // Eigen::VectorXd qddot = M.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
 
-    out_torques_var = pd - (Kd * qddot) * timeStep + in_coriolisAndGravity_var;
+    out_torques_var = pd - (Kd * qddot) * timeStep;
+    if (include_gravity)
+    {
+        out_torques_var += in_coriolisAndGravity_var;
+    }
 
     // // Debug simple controller
     // for (unsigned int i = 0; i < this->total_dof_size; i++)

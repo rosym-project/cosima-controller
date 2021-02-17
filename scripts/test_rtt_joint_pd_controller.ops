@@ -35,7 +35,7 @@ ros.import("eigen_typekit")
 ros.import("rtt_sensor_msgs")
 ros.import("rtt_geometry_msgs")
 
-import("cosima-controller")
+ros.import("cosima-controller")
 
 # Load the robot interface.
 loadComponent("robot","cosima::RTTRobotManipulatorSim")
