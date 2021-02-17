@@ -202,6 +202,9 @@ void KinDynMultiArm_KDL::solve(const sensor_msgs::JointState &in_robotstatus)
     this->q_qd.qdot.data(i) = in_robotstatus.velocity[i];
   }
 
+  // PRELOG(Error) << "KDL position = " << this->q_qd.q.data << RTT::endlog();
+  // PRELOG(Error) << "KDL velocity = " << this->q_qd.qdot.data << RTT::endlog();
+
   ////////////////////////////////
   // CALCULATE INVERSE DYNAMICS //
   ////////////////////////////////
@@ -209,12 +212,18 @@ void KinDynMultiArm_KDL::solve(const sensor_msgs::JointState &in_robotstatus)
   this->id_dyn_solver->JntToCoriolis(this->q_qd.q, this->q_qd.qdot, this->c);
   this->id_dyn_solver->JntToMass(this->q_qd.q, this->M);
 
+  // PRELOG(Error) << "KDL G = " << g.data << RTT::endlog();
+  // PRELOG(Error) << "KDL G+C = " << (g.data + c.data) << RTT::endlog();
+
   // // With or without velocity (qdot)?
+  // KDL::JntArray g2 = this->g;
+  // g2.data.setZero();
   // int code = this->jnt_gravity_solver->CartToJnt(this->q_qd.q,
   //                                                this->q_qd.qdot,
   //                                                this->jnt_array_zero,
   //                                                this->wrench_zero,
-  //                                                this->g);
+  //                                                g2);
+  // PRELOG(Error) << "KDL G2 = " << g2.data << RTT::endlog();
 
   //////////////////////////////////////////////
   // CLOSE FORM FOR LWR 4(+) TO OVERRRIDE KDL //
@@ -397,7 +406,7 @@ bool KinDynMultiArm_KDL::setChain(const std::string &chain_root_link_name, const
   _worldOffset.orientation.y = 0;
   _worldOffset.orientation.z = 0;
 
-  return this->setChainWithWorldOffset(chain_root_link_name, chain_tip_link_name, _worldOffset);
+  return this->setChainWithWorldOffset(chain_root_link_name, chain_tip_link_name, _worldOffset, _worldOffset);
 }
 
 bool KinDynMultiArm_KDL::setChainWithWorldOffset(const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const Eigen::VectorXd &worldOffsetTranslation, const Eigen::VectorXd &worldOffsetRotation)
@@ -422,10 +431,25 @@ bool KinDynMultiArm_KDL::setChainWithWorldOffset(const std::string &chain_root_l
   _worldOffset.orientation.y = worldOffsetRotation(2);
   _worldOffset.orientation.z = worldOffsetRotation(3);
 
-  return this->setChainWithWorldOffset(chain_root_link_name, chain_tip_link_name, _worldOffset);
+  geometry_msgs::Pose _identity;
+  _identity.position.x = 0;
+  _identity.position.y = 0;
+  _identity.position.z = 0;
+
+  _identity.orientation.w = 1;
+  _identity.orientation.x = 0;
+  _identity.orientation.y = 0;
+  _identity.orientation.z = 0;
+
+  return this->setChainWithWorldOffset(chain_root_link_name, chain_tip_link_name, _worldOffset, _identity);
 }
 
-bool KinDynMultiArm_KDL::setChainWithWorldOffset(const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const geometry_msgs::Pose &worldOffset)
+void KinDynMultiArm_KDL::setComplianceFrame(const geometry_msgs::Pose &offset)
+{
+
+}
+
+bool KinDynMultiArm_KDL::setChainWithWorldOffset(const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const geometry_msgs::Pose &worldOffset, const geometry_msgs::Pose &compliance_frame)
 {
   if (chain_root_link_name.length() <= 0)
   {
@@ -516,8 +540,15 @@ bool KinDynMultiArm_KDL::setChainWithWorldOffset(const std::string &chain_root_l
 
   // segment_ee_ptr->setInertia(KDL::RigidBodyInertia(_ee_mass, _ee_cog, rot_inertia_ee));
 
+  RTT::log(RTT::Error) << "compliance_frame = " << compliance_frame.position.x << ", " << compliance_frame.position.y << ", " << compliance_frame.position.z << " : " << compliance_frame.orientation.w << ", " << compliance_frame.orientation.x << ", " << compliance_frame.orientation.y << ", " << compliance_frame.orientation.z << RTT::endlog();
+
   // get last segment
   KDL::Segment *segment_ee_ptr = &(_chain_offset_tmp.segments[_chain_offset_tmp.getNrOfSegments() - 1]);
+
+  KDL::Vector _cfVec = KDL::Vector(compliance_frame.position.x, compliance_frame.position.y, compliance_frame.position.z);
+
+  segment_ee_ptr->setFrameToTip(segment_ee_ptr->getFrameToTip() * KDL::Frame(KDL::Rotation::Quaternion(compliance_frame.orientation.x, compliance_frame.orientation.y, compliance_frame.orientation.z, compliance_frame.orientation.w), _cfVec));
+
   // get its dynamic parameters
   KDL::RigidBodyInertia inertia_ee = segment_ee_ptr->getInertia();
   double eeMass_ = inertia_ee.getMass();
@@ -527,12 +558,17 @@ bool KinDynMultiArm_KDL::setChainWithWorldOffset(const std::string &chain_root_l
   double cog_y = 0.0;
   double cog_z = 0.108000;
   KDL::Vector payload_cog_offset(cog_x, cog_y, cog_z);
-  double m = 0.01 + 0.01;
+  double m = 0.015 + 0.015; // both schunk fingers
   double m_combined = eeMass_ + m;
   KDL::Vector cog_offset_combined = (payload_cog_offset - eeCOG_) * m / m_combined;
   cog_offset_combined += eeCOG_;
   // set the new inertia at the end-effector.
   // segment_ee_ptr->setInertia(KDL::RigidBodyInertia(m_combined, cog_offset_combined, rot_inertia_ee));
+
+
+  cog_offset_combined -= _cfVec;
+
+  segment_ee_ptr->setInertia(KDL::RigidBodyInertia(m_combined, cog_offset_combined, rot_inertia_ee));
 
   this->kdl_chain = _chain_offset_tmp;
 

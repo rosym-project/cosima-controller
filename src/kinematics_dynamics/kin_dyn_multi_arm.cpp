@@ -251,13 +251,19 @@ bool KinDynMultiArm::addRobotChainWithWorldOffset(const std::string &solver_type
         _solver = std::shared_ptr<KinDynInterface>(new KinDynMultiArm_RBDL(modelname));
     }
 #endif
-    // Otherwise return with error
-    return false;
 
-    if ((!_solver) || (!_solver->setChainWithWorldOffset(chain_root_link_name, chain_tip_link_name, worldOffsetTranslation, worldOffsetRotation)))
+    if (!_solver)
     {
+        PRELOG(Error) << "Solver could not be created! Perhaps the solver_type = " << solver_type << " is not found!" << RTT::endlog();
         return false;
     }
+
+    if (!_solver->setChainWithWorldOffset(chain_root_link_name, chain_tip_link_name, worldOffsetTranslation, worldOffsetRotation))
+    {
+        PRELOG(Error) << "Chain could not be set for: " << chain_root_link_name << " and " << chain_tip_link_name << RTT::endlog();
+        return false;
+    }
+
     std::shared_ptr<sensor_msgs::JointState> _robotstatus_tmp = std::shared_ptr<sensor_msgs::JointState>(new sensor_msgs::JointState());
     _robotstatus_tmp->position.resize(_solver->getDoF());
     _robotstatus_tmp->velocity.resize(_solver->getDoF());
@@ -273,7 +279,7 @@ bool KinDynMultiArm::addRobotChainWithWorldOffset(const std::string &solver_type
     return true;
 }
 
-bool KinDynMultiArm::addRobotChainWithWorldOffset(const std::string &solver_type, const std::string &modelname, const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const geometry_msgs::Pose &worldOffset)
+bool KinDynMultiArm::addRobotChainWithWorldOffset(const std::string &solver_type, const std::string &modelname, const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const geometry_msgs::Pose &worldOffset, const geometry_msgs::Pose &compliance_frame)
 {
     std::shared_ptr<KinDynInterface> _solver = NULL;
 
@@ -301,13 +307,19 @@ bool KinDynMultiArm::addRobotChainWithWorldOffset(const std::string &solver_type
         _solver = std::shared_ptr<KinDynInterface>(new KinDynMultiArm_RBDL(modelname));
     }
 #endif
-    // Otherwise return with error
-    return false;
-
-    if ((!_solver) || (!_solver->setChainWithWorldOffset(chain_root_link_name, chain_tip_link_name, worldOffset)))
+    
+    if (!_solver)
     {
+        PRELOG(Error) << "Solver could not be created! Perhaps the solver_type = " << solver_type << " is not found!" << RTT::endlog();
         return false;
     }
+
+    if (!_solver->setChainWithWorldOffset(chain_root_link_name, chain_tip_link_name, worldOffset, compliance_frame))
+    {
+        PRELOG(Error) << "Chain could not be set for: " << chain_root_link_name << " and " << chain_tip_link_name << RTT::endlog();
+        return false;
+    }
+
     std::shared_ptr<sensor_msgs::JointState> _robotstatus_tmp = std::shared_ptr<sensor_msgs::JointState>(new sensor_msgs::JointState());
     _robotstatus_tmp->position.resize(_solver->getDoF());
     _robotstatus_tmp->velocity.resize(_solver->getDoF());
@@ -321,4 +333,9 @@ bool KinDynMultiArm::addRobotChainWithWorldOffset(const std::string &solver_type
     this->vec_robotstatus_tmp.push_back(_robotstatus_tmp);
     this->vec_kin_dyn_solvers.push_back(_solver);
     return true;
+}
+
+void KinDynMultiArm::setComplianceFrame(const unsigned int &index, const geometry_msgs::Pose &offset)
+{
+    this->vec_kin_dyn_solvers[index]->setComplianceFrame(offset);
 }

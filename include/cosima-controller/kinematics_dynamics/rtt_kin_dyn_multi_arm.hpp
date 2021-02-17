@@ -64,8 +64,11 @@ namespace cosima
 
     // Needs to be called during configuration phase (Non-RT)
     bool addChain(const std::string &solver_type, const std::string &modelname, const std::string &chain_root_link_name, const std::string &chain_tip_link_name);
+    bool addChainWithCompliance(const std::string &solver_type, const std::string &modelname, const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const geometry_msgs::Pose &compliance_frame);
     bool addChainWithWorldOffset_to(const std::string &solver_type, const std::string &modelname, const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const Eigen::VectorXd &worldOffsetTranslation, const Eigen::VectorXd &worldOffsetRotation);
     bool addChainWithWorldOffset(const std::string &solver_type, const std::string &modelname, const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const geometry_msgs::Pose &worldOffset);
+
+    void setComplianceFrame(const unsigned int &index, const geometry_msgs::Pose &offset);
 
   private:
     KinDynMultiArm solver_manager;
@@ -116,6 +119,8 @@ namespace cosima
 
     // unsigned int DOFsize, DOFsizeActive;
     bool portsArePrepared;
+    // property to override the usage of external grav and inertia
+    int ext_override;
     // unsigned int numRobotArms, numObjects;
     // std::vector<Eigen::Matrix3f> objectInertia;
     // std::vector<float> objectMass;

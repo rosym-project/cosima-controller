@@ -103,7 +103,7 @@ namespace cosima
       // This might be useful to deactivate,
       // if another component down the seanse-react chain,
       // adds the gravity component at the very end.
-      // bool include_gravity;
+      bool include_gravity;
 
       double kp, kd;
 
@@ -117,6 +117,13 @@ namespace cosima
       // Eigen::HouseholderQR<Eigen::MatrixXd> householderQR_solver;
       // For speed over accuracy (and matrix needs to be positive or negative definite):
       Eigen::LDLT<Eigen::MatrixXd> ldlt_solver;
+
+      // Velocity filtering mechanism
+      bool useFilter;
+      double maxVelRad;
+      Eigen::VectorXd errorT;
+      Eigen::VectorXd lastCommand;
+      Eigen::VectorXd scalingVec;
     };
 
   } // namespace controller

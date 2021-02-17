@@ -32,13 +32,13 @@
 using namespace cosima;
 using namespace controller;
 
-RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : RTT::TaskContext(name), total_dof_size(0) //, include_gravity(true)
+RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : RTT::TaskContext(name), total_dof_size(0), useFilter(true), include_gravity(true)
 {
     addOperation("addRobot", &RTTJointPDCtrl::addRobot, this)
         .doc("Add a robot in terms of the sequential (controlled) DoF")
         .arg("dof", "degrees of freedom");
-    // addProperty("include_gravity", this->include_gravity)
-    //     .doc("Include the gravity term in the commanded torques (default: true).");
+    addProperty("include_gravity", this->include_gravity)
+        .doc("Include the gravity term in the commanded torques (default: true).");
 
     addOperation("setGains", &RTTJointPDCtrl::setGains, this);
     addOperation("setPositionCmd", &RTTJointPDCtrl::setPositionCmd, this);
@@ -52,6 +52,11 @@ RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : RTT::TaskContext(name)
     addProperty("timeStep", this->timeStep);
 
     this->vec_robot_dof.clear();
+
+    this->useFilter = true;
+    addProperty("useFilter", this->useFilter);
+    this->maxVelRad = 0.2;
+    addProperty("maxVelRad", this->maxVelRad);
 }
 
 void RTTJointPDCtrl::setGains(const double &kp, const double &kd)
@@ -149,6 +154,10 @@ bool RTTJointPDCtrl::configureHook()
     qdError = Eigen::VectorXd::Zero(this->total_dof_size);
     ones = Eigen::VectorXd::Ones(this->total_dof_size);
 
+    errorT = Eigen::VectorXd::Zero(this->total_dof_size);
+    lastCommand = Eigen::VectorXd::Zero(this->total_dof_size);
+    scalingVec = Eigen::VectorXd::Ones(this->total_dof_size);
+
     // householderQR_solver = Eigen::HouseholderQR<Eigen::MatrixXd>(this->total_dof_size, this->total_dof_size);
     ldlt_solver = Eigen::LDLT<Eigen::MatrixXd>(this->total_dof_size);
 
@@ -195,21 +204,52 @@ void RTTJointPDCtrl::updateHook()
         return; // Return is better, because in this case we don't send a command at all!
     }
 
+    // Velocity filtering mechanism
+    scalingVec.fill(1.0);
+    if (this->useFilter)
+    {
+        for (unsigned int i = 0; i < this->total_dof_size; i++)
+        {
+            errorT(i) = this->in_joint_cmd_var.positions[i] - lastCommand(i);
+        }
+        unsigned int offset_counter = 0;
+        for (unsigned int i = 0; i < this->vec_robot_dof.size(); i++)
+        {
+            unsigned int dofsize = this->vec_robot_dof.at(i);
+
+            float jointDistance = errorT.segment(offset_counter, dofsize).norm();
+            float jointDistPerPeriodStep = maxVelRad * this->getPeriod();
+            if (jointDistance > jointDistPerPeriodStep)
+            {
+                scalingVec.segment(offset_counter, dofsize).fill(jointDistPerPeriodStep / jointDistance);
+            }
+            offset_counter += dofsize;
+        }
+
+        lastCommand = lastCommand + errorT.cwiseProduct(scalingVec);
+    }
+    else
+    {
+        for (unsigned int i = 0; i < this->total_dof_size; i++)
+        {
+            lastCommand(i) = this->in_joint_cmd_var.positions[i];
+        }
+    }
+
     // Here is an alternate way to convert from std to eigen
     // Eigen::VectorXd fdb_positions = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.position.data(), in_robotstatus_var.position.size());
     // Eigen::VectorXd fdb_velocities = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(in_robotstatus_var.velocity.data(), in_robotstatus_var.velocity.size());
     for (unsigned int i = 0; i < this->total_dof_size; i++)
     {
-        qError(i) = this->in_joint_cmd_var.positions[i] - in_robotstatus_var.position[i];
+        qError(i) = lastCommand(i) - in_robotstatus_var.position[i];
         qdError(i) = this->in_joint_cmd_var.velocities[i] - in_robotstatus_var.velocity[i];
     }
-    
+
     Eigen::MatrixXd Kd = (kd * ones).asDiagonal();
 
     Eigen::VectorXd pd = ((kp * ones).asDiagonal()) * qError.matrix() + Kd * qdError.matrix();
 
     Eigen::MatrixXd M = in_inertia_var + Kd * timeStep;
-
 
     // https://eigen.tuxfamily.org/dox-devel/group__TopicLinearAlgebraDecompositions.html
     // https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
@@ -218,7 +258,11 @@ void RTTJointPDCtrl::updateHook()
     // Solver alternative: Slow but very accurate
     // Eigen::VectorXd qddot = M.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
 
-    out_torques_var = pd - (Kd * qddot) * timeStep + in_coriolisAndGravity_var;
+    out_torques_var = pd - (Kd * qddot) * timeStep;
+    if (include_gravity)
+    {
+        out_torques_var += in_coriolisAndGravity_var;
+    }
 
     // // Debug simple controller
     // for (unsigned int i = 0; i < this->total_dof_size; i++)

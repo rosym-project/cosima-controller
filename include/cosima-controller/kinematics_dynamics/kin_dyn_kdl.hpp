@@ -72,7 +72,7 @@ namespace cosima
     // Needs to be called during configuration phase (Non-RT)
     bool setChain(const std::string &chain_root_link_name, const std::string &chain_tip_link_name);
     bool setChainWithWorldOffset(const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const Eigen::VectorXd &worldOffsetTranslation, const Eigen::VectorXd &worldOffsetRotation);
-    bool setChainWithWorldOffset(const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const geometry_msgs::Pose &worldOffset);
+    bool setChainWithWorldOffset(const std::string &chain_root_link_name, const std::string &chain_tip_link_name, const geometry_msgs::Pose &worldOffset, const geometry_msgs::Pose &compliance_frame);
 
     // Should be called once everything is set up (RT)
     void compute(
@@ -108,6 +108,8 @@ namespace cosima
         bool override = false);
 
     unsigned int getDoF();
+
+    void setComplianceFrame(const geometry_msgs::Pose &offset);
 
   private:
     bool loadModel(const std::string &modelname);

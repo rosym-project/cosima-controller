@@ -87,6 +87,8 @@ namespace cosima
 
       void activateContactSituationResetActivation(const std::string &csName, const double time_secs);
 
+      bool switchCSinSecs(const std::string &cs_name, const double time_secs);
+
     private:
       struct JacobianConfig
       {
@@ -160,6 +162,8 @@ namespace cosima
       Eigen::VectorXd in_robotstatus_pos_;
       Eigen::VectorXd in_robotstatus_vel_;
       Eigen::VectorXd in_robotstatus_trq_;
+
+      RTT::OperationCaller<void(std::string,double)> tc_prio_activateContactSituationResetActivation;
     };
 
   } // namespace task

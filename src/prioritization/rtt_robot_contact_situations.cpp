@@ -126,19 +126,28 @@ bool RobotContactSituations::setStartCS(const std::string &name)
     // if (alpha_per_cs.count(name) > 0)
     if (this->alpha_per_cs.find(name) != this->alpha_per_cs.end())
     {
+        RTT::log(RTT::Error) << "Found!: " << name << " for robot " << this->getRobotName() << ", alpha_per_cs.size() = " << alpha_per_cs.size() << RTT::endlog();
+
         this->lastActiveAlpha = alpha_per_cs[name];
     }
     else
     {
+        RTT::log(RTT::Error) << "Cannot find: " << name << " for robot " << this->getRobotName() << ", alpha_per_cs.size() = " << alpha_per_cs.size() << RTT::endlog();
+
         // If the chosen CS is not available, just take the first one!
         RTT::log(RTT::Error) << "robot: " << this->getRobotName() << ", alpha_per_cs.size() = " << alpha_per_cs.size() << ", name=" << name << RTT::endlog();
         RTT::log(RTT::Error) << "alpha_per_cs.begin()->second:\n"
                              << alpha_per_cs.begin()->second << RTT::endlog();
         this->lastActiveAlpha = alpha_per_cs.begin()->second;
     }
+
+    RTT::log(RTT::Error) << "SET setStartCS( " << name << " ) and set this->lastActiveAlpha to\n"
+                         << this->lastActiveAlpha << RTT::endlog();
     ghcProj.setAlphas(this->lastActiveAlpha);
     RTT::log(RTT::Error) << this->getRobotName() << " called setStartCS( " << name << " ) and set this->lastActiveAlpha to\n"
                          << this->lastActiveAlpha << RTT::endlog();
+
+    return true;
 }
 
 void RobotContactSituations::updateInteralAndExternalProjection(Eigen::MatrixXd &internal, Eigen::MatrixXd &internal_dot)

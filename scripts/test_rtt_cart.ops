@@ -1,0 +1,285 @@
+# ============================================================
+#
+# This file is a part of CoSiMA (CogIMon) project
+#
+# Copyright (C) 2020 by Dennis Leroy Wigand <dwigand@techfak.uni-bielefeld.de>
+#
+# This file may be licensed under the terms of the
+# GNU Lesser General Public License Version 3 (the ``LGPL''),
+# or (at your option) any later version.
+#
+# Software distributed under the License is distributed
+# on an ``AS IS'' basis, WITHOUT WARRANTY OF ANY KIND, either
+# express or implied. See the LGPL for the specific language
+# governing rights and limitations.
+#
+# You should have received a copy of the LGPL along with this
+# program. If not, go to http://www.gnu.org/licenses/lgpl.html
+# or write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# The development of this software was supported by:
+#   CoR-Lab, Research Institute for Cognition and Robotics
+#     Bielefeld University
+#
+# ============================================================
+
+# Load the rtt ros service lib.
+import("rtt_ros")
+# Load the lib.
+ros.import("cosima-robot-sim")
+
+ros.import("rtt_roscomm")
+ros.import("rtt_trajectory_msgs")
+ros.import("eigen_typekit")
+ros.import("rtt_sensor_msgs")
+ros.import("rtt_geometry_msgs")
+
+import("cosima-controller")
+
+# Load the robot interface.
+loadComponent("robot","cosima::RTTRobotManipulatorSim")
+# We need to have the period at 0 to prevent the instantiation of a PeriodicActivity
+setActivityOnCPU("robot",0.001,90,ORO_SCHED_OTHER,0)
+robot.connectBullet()
+# Connect to the already spawned robot in bullet
+robot.connectToRobotByName("iiwa14_0", "bullet")
+
+robot.defineKinematicChain("iiwa14_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf", "world", "iiwa_link_ee")
+robot.configure()
+
+var geometry_msgs.Pose cf = geometry_msgs.Pose()
+cf.position.x = 0
+cf.position.y = -0.2
+cf.position.z = 0.4
+cf.orientation.w = 1
+cf.orientation.x = 0
+cf.orientation.y = 0
+cf.orientation.z = 0
+
+loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
+setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_RT,1)
+# KinDyn.addChain("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee")
+KinDyn.addChainWithWorldOffset("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee", cf)
+KinDyn.configure()
+
+
+loadComponent("jspdctrl", "cosima::controller::RTTJointPDCtrl")
+setActivityOnCPU("jspdctrl",0.001,10,ORO_SCHED_RT,2)
+jspdctrl.addRobot(7)
+jspdctrl.configure()
+jspdctrl.setGains(200,80)
+
+# KinDyn.ext_override=0
+
+var eigen_vector jconfig = eigen_vector(7)
+# jconfig[0]=0.0
+# jconfig[1]=1.2
+# jconfig[2]=0.0
+# # jconfig[3]=-1.0
+# jconfig[3]=0.0
+# jconfig[4]=0.0
+# # jconfig[5]=0.3
+# jconfig[5]=0.0
+# jconfig[6]=0.0
+# jspdctrl.setPositionCmd(jconfig)
+
+# jconfig[0]=1.57
+# jconfig[1]=0.4
+# jconfig[2]=0.0
+# jconfig[3]=-1.5
+# jconfig[4]=0.0
+# jconfig[5]=0.5
+# jconfig[6]=0.0
+
+jconfig[0]=1.5
+jconfig[1]=-0.1
+jconfig[2]=0.0
+jconfig[3]=-2.0
+jconfig[4]=0.0
+jconfig[5]=1.0
+jconfig[6]=1.57
+jspdctrl.setPositionCmd(jconfig)
+
+# jconfig[0]=0.0
+# jconfig[1]=0.0
+# jconfig[2]=0.0
+# jconfig[3]=0.0
+# jconfig[4]=0.0
+# jconfig[5]=0.0
+# jconfig[6]=0.0
+# jspdctrl.setPositionCmd(jconfig)
+
+
+# jconfig[0]=0.08907255532131235
+# jconfig[1]=0.9515201307910602
+# jconfig[2]=-0.019023026844190688
+# jconfig[3]=-0.1348580560029059
+# jconfig[4]=-0.03500313841145328
+# jconfig[5]=-1.0436718907833102
+# jconfig[6]=-0.01568671894346847
+
+# jconfig[0]=0.08959701657561887
+# jconfig[1]=0.9746779703089351
+# jconfig[2]=-0.022143888149590597
+# jconfig[3]=-0.09495262319819009
+# jconfig[4]=-0.032369775316610575
+# jconfig[5]=-1.0280273135423905
+# jconfig[6]=-0.030310267110530087
+
+
+# CART CONTROLLER
+loadComponent("cartctrl", "cosima::controller::RTTCartPIDController")
+setActivityOnCPU("cartctrl",0.001,11,ORO_SCHED_RT,3)
+cartctrl.addRobot(6, 7);
+cartctrl.preparePorts();
+cartctrl.configure();
+cartctrl.setGains(400,100)
+cartctrl.setGainsOrientation(30,2)
+
+
+
+
+###################################################
+########                Prio               ########
+###################################################
+loadComponent("prio", "cosima::prioritization::DynamicTaskPrioritization")
+setActivityOnCPU("prio", 0.001, 90, ORO_SCHED_OTHER, 5)
+prio.loadYAMLConfig("/home/flex/system/flexassembly_dev_ws/src/cosima-controller/scripts/test_constraint_no.yaml")
+prio.configure()
+prio.setStartCS("Folding_SR_0")
+prio.setNewTargetCS("Folding_SR_0");
+prio.debug_pointintime=1;
+
+###################################################
+########                Task               ########
+###################################################
+loadComponent("task","cosima::task::TaskDescriberSynthesis")
+setActivityOnCPU("task",0.001,90,ORO_SCHED_OTHER, 4)
+task.loadYAMLConfig("/home/flex/system/flexassembly_dev_ws/src/cosima-controller/scripts/test_constraint_no.yaml")
+task.configure()
+task.activateContactSituation("Folding_SR_0");
+task.debug_pointintime=1;
+addPeer("task","prio")
+
+var ConnPolicy cp;
+
+# # # Use direct robot interface connection
+# connect("robot.out_iiwa14_0_jointstate_fdb","jspdctrl.in_robotstatus_port",cp)
+# connect("robot.out_iiwa14_0_gc_fdb","jspdctrl.in_coriolisAndGravity_port",cp)
+# connect("robot.out_iiwa14_0_inertia_fdb","jspdctrl.in_inertia_port",cp)
+
+# # # Use a proxy connection via the KinDyn component
+connect("robot.out_iiwa14_0_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
+connect("robot.out_iiwa14_0_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
+connect("robot.out_iiwa14_0_inertia_fdb","KinDyn.in_inertia_0_port",cp)
+
+# TASK
+connect("KinDyn.out_robotstatus_port", "task.in_robotstatus_port", cp)
+connect("KinDyn.out_coriolisAndGravity_port","task.in_gc_port", cp)
+connect("KinDyn.out_inertia_port","task.in_inertia_port", cp)
+connect("KinDyn.out_jacobianDot_port","task.in_jacobian_dot_port", cp)
+connect("KinDyn.out_jacobian_port","task.in_jacobian_port", cp)
+connect("KinDyn.out_cartPos_port","task.in_CartPos_port", cp)
+connect("KinDyn.out_cartVel_port", "task.in_CartVel_port", cp)
+
+# JOINT CONTROLLER
+# connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port",cp)
+# connect("KinDyn.out_coriolisAndGravity_port","jspdctrl.in_coriolisAndGravity_port",cp)
+# connect("KinDyn.out_inertia_port","jspdctrl.in_inertia_port",cp)
+connect("task.out_nullspace_tracking_1_robotstatus_port","jspdctrl.in_robotstatus_port", cp)
+connect("task.out_nullspace_tracking_1_GC_port","jspdctrl.in_coriolisAndGravity_port", cp)
+connect("task.out_nullspace_tracking_1_Inertia_c_port","jspdctrl.in_inertia_port",cp)
+
+# CART CONTROLLER
+connect("KinDyn.out_cartPos_port", "cartctrl.in_currentTaskSpacePosition_port", cp)
+# connect("task.out_motion_tracking_1_vm_fdb_cart_pos_port", "cartctrl.in_currentTaskSpacePosition_port", cp)
+connect("KinDyn.out_cartVel_port", "cartctrl.in_currentTaskSpaceVelocity_port", cp)
+# connect("task.out_motion_tracking_1_vm_fdb_cart_vel_port", "cartctrl.in_currentTaskSpaceVelocity_port", cp)
+# connect("KinDyn.out_coriolisAndGravity_port", "cartctrl.in_coriolisAndGravity_port", cp)
+connect("task.out_motion_tracking_1_GC_port", "cartctrl.in_coriolisAndGravity_port", cp)
+# connect("KinDyn.out_inertia_port","cartctrl.in_inertia_port", cp)
+connect("task.out_motion_tracking_1_Inertia_c_port","cartctrl.in_inertia_port", cp)
+# connect("KinDyn.out_robotstatus_port", "cartctrl.in_robotstatus_port", cp)
+connect("task.out_motion_tracking_1_robotstatus_port", "cartctrl.in_robotstatus_port", cp)
+# connect("KinDyn.out_jacobian_port","cartctrl.in_jacobian_port", cp)
+connect("task.out_motion_tracking_1_Jacobian_port","cartctrl.in_jacobian_port", cp)
+# connect("KinDyn.out_jacobianDot_port","cartctrl.in_jacobianDot_port", cp)
+connect("task.out_motion_tracking_1_Jacobian_dot_port","cartctrl.in_jacobianDot_port", cp)
+#######
+connect("task.out_motion_tracking_1_P_port","cartctrl.in_projection_port", cp)
+connect("task.out_motion_tracking_1_P_dot_port","cartctrl.in_projectionDot_port", cp)
+
+
+# # # Command connection always stays the same
+###################################################
+########              Prio CONN            ########
+###################################################
+connect("task.out_nullspace_tracking_1_Jacobian_port", "prio.in_nullspace_tracking_1_J", cp)
+connect("task.out_nullspace_tracking_1_Inertia_port", "prio.in_nullspace_tracking_1_inertia", cp)
+connect("task.out_motion_tracking_1_Jacobian_port", "prio.in_motion_tracking_1_J", cp)
+connect("task.out_motion_tracking_1_Inertia_port", "prio.in_motion_tracking_1_inertia", cp)
+# connect("task.out_force_constraint_1_Jacobian_port", "fctrl.in_jacobian_port", cp)
+# connect("task.out_force_constraint_1_Jacobian_port", "prio.in_force_constraint_1_J", cp)
+# connect("task.out_force_constraint_1_Inertia_port", "prio.in_force_constraint_1_inertia", cp)
+#######
+connect("KinDyn.out_robotstatus_port", "prio.in_robotstatus_port", cp)
+connect("KinDyn.out_coriolisAndGravity_port", "prio.in_coriolisAndGravity_port", cp)
+connect("jspdctrl.out_torques_port", "prio.in_nullspace_tracking_1_torques", cp)
+connect("cartctrl.out_torques_port","prio.in_motion_tracking_1_torques", cp)
+# connect("fctrl.out_torques_port","prio.in_force_constraint_1_torques", cp)
+
+connect("prio.out_torques_port", "robot.in_iiwa14_0_JointTorqueCtrl_cmd", cp)
+# connect("jspdctrl.out_torques_port","robot.in_iiwa14_0_JointTorqueCtrl_cmd",cp)
+# connect("cartctrl.out_torques_port","robot.in_iiwa14_0_JointTorqueCtrl_cmd", cp)
+
+
+# STREAMS
+stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints"))
+
+stream("robot.out_iiwa14_0_jointstate_fdb", ros.topic("/joint_state_publisher/joint_states"))
+
+stream("cartctrl.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
+
+# stream("traj.in_pose_port", ros.topic("/traj"))
+
+robot.setControlMode("iiwa14_0", "JointTorqueCtrl")
+robot.start()
+
+KinDyn.start()
+jspdctrl.start()
+# traj.start()
+
+cartctrl.start()
+task.start()
+prio.start()
+
+
+# jconfig[0]=1.57
+# jconfig[1]=0.4
+# jconfig[2]=0.0
+# jconfig[3]=-1.5
+# jconfig[4]=0.0
+# jconfig[5]=0.5
+# jconfig[6]=0.0
+# jspdctrl.setPositionCmd(jconfig)
+
+# jconfig[0]=0.0
+# jconfig[1]=0.0
+# jconfig[2]=0.0
+# jconfig[3]=0.0
+# jconfig[4]=0.0
+# jconfig[5]=0.0
+# jconfig[6]=0.0
+# jspdctrl.setPositionCmd(jconfig)
+
+# task.activateContactSituation("Folding_SR_0");
+# prio.setNewTargetCS("Folding_SR_0");
+
+# task.activateContactSituation("Folding_SR_1");
+# prio.setNewTargetCS("Folding_SR_1");
+
+# task.activateContactSituation("Folding_SR_2");
+# prio.setNewTargetCS("Folding_SR_2");
+
+# task.switchCSinSecs("Folding_SR_1", 0);
