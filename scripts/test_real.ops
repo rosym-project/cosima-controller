@@ -1,0 +1,56 @@
+import("rtt_ros")
+ros.import("cosima-fri-iiwa-hw")
+
+ros.import("rtt_roscomm")
+ros.import("rtt_trajectory_msgs")
+ros.import("eigen_typekit")
+ros.import("rtt_sensor_msgs")
+
+ros.import("cosima-controller")
+
+loadComponent("robot","FRI::FRIDriver")
+setActivityOnCPU("robot",0.001,90,ORO_SCHED_OTHER,0)
+robot.fri_ip = "192.170.10.2"
+
+robot.configure()
+
+
+stream("robot.out_kuka1_jointstate_fdb", ros.topic("robot/state"))
+
+
+loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
+setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_RT,1)
+KinDyn.addChain("KDL","/home/kogrob/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa7_link_ee")
+KinDyn.configure()
+
+
+loadComponent("jspdctrl", "cosima::controller::RTTJointPDCtrl")
+setActivityOnCPU("jspdctrl",0.001,10,ORO_SCHED_RT,2)
+jspdctrl.addRobot(7)
+jspdctrl.configure()
+jspdctrl.setGains(80,20)
+
+
+var ConnPolicy cp;
+
+# # # Use a proxy connection via the KinDyn component
+connect("robot.out_kuka1_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
+connect("robot.out_kuka1_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
+connect("robot.out_kuka1_inertia_fdb","KinDyn.in_inertia_0_port",cp)
+
+connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port",cp)
+connect("KinDyn.out_coriolisAndGravity_port","jspdctrl.in_coriolisAndGravity_port",cp)
+connect("KinDyn.out_inertia_port","jspdctrl.in_inertia_port",cp)
+
+# # # Command connection always stays the same
+connect("jspdctrl.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd",cp)
+
+
+stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints"))
+
+
+# robot.setControlMode("kuka1", "JointTorqueCtrl")
+# robot.start()
+
+# KinDyn.start()
+# jspdctrl.start()

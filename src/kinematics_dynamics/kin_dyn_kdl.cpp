@@ -536,7 +536,7 @@ bool KinDynMultiArm_KDL::setChainWithWorldOffset(const std::string &chain_root_l
   double cog_y = 0.0;
   double cog_z = 0.108000;
   KDL::Vector payload_cog_offset(cog_x, cog_y, cog_z);
-  double m = 0.04 + 0.04; // both schunk fingers
+  double m = 0.015 + 0.015; // both schunk fingers
   double m_combined = eeMass_ + m;
   KDL::Vector cog_offset_combined = (payload_cog_offset - eeCOG_) * m / m_combined;
   cog_offset_combined += eeCOG_;

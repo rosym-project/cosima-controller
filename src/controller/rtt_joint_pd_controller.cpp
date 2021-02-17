@@ -218,7 +218,8 @@ void RTTJointPDCtrl::updateHook()
     // Solver alternative: Slow but very accurate
     // Eigen::VectorXd qddot = M.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
 
-    out_torques_var = pd - (Kd * qddot) * timeStep + in_coriolisAndGravity_var;
+    out_torques_var = pd - (Kd * qddot) * timeStep;
+    // + in_coriolisAndGravity_var;
 
     // // Debug simple controller
     // for (unsigned int i = 0; i < this->total_dof_size; i++)
