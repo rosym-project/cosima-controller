@@ -35,7 +35,7 @@ ros.import("eigen_typekit")
 ros.import("rtt_sensor_msgs")
 ros.import("rtt_geometry_msgs")
 
-import("cosima-controller")
+ros.import("cosima-controller")
 
 # Load the robot interface.
 loadComponent("robot","cosima::RTTRobotManipulatorSim")
@@ -45,8 +45,11 @@ robot.connectBullet()
 # Connect to the already spawned robot in bullet
 robot.connectToRobotByName("iiwa14_0", "bullet")
 
-robot.defineKinematicChain("iiwa14_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf", "world", "iiwa_link_ee")
+robot.defineKinematicChain("iiwa14_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14-wischer/iiwa14.urdf", "world", "iiwa_link_wischer")
 robot.configure()
+
+# Make it closer to the real robot! Might decrease the overall accuracy...
+robot.addArtificialGravity("iiwa14_0", true)
 
 var geometry_msgs.Pose cf = geometry_msgs.Pose()
 cf.position.x = 0
@@ -59,9 +62,11 @@ cf.orientation.z = 0
 
 loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
 setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_RT,1)
-# KinDyn.addChain("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee")
-KinDyn.addChainWithWorldOffset("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee", cf)
+# KinDyn.addChain("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14-wischer/iiwa14.urdf","world","iiwa_link_wischer")
+KinDyn.addChainWithWorldOffset("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14-wischer/iiwa14.urdf","world","iiwa_link_wischer", cf)
 KinDyn.configure()
+
+KinDyn.ext_override = 0
 
 
 loadComponent("jspdctrl", "cosima::controller::RTTJointPDCtrl")
@@ -69,6 +74,7 @@ setActivityOnCPU("jspdctrl",0.001,10,ORO_SCHED_RT,2)
 jspdctrl.addRobot(7)
 jspdctrl.configure()
 jspdctrl.setGains(200,80)
+jspdctrl.include_gravity=true
 
 # KinDyn.ext_override=0
 
@@ -84,13 +90,13 @@ var eigen_vector jconfig = eigen_vector(7)
 # jconfig[6]=0.0
 # jspdctrl.setPositionCmd(jconfig)
 
-jconfig[0]=0.0
-jconfig[1]=0.126
-jconfig[2]=0.0
-jconfig[3]=-0.884
-jconfig[4]=0.0
-jconfig[5]=0.632
-jconfig[6]=0.0
+jconfig[0]=0.00649109
+jconfig[1]=0.0769402
+jconfig[2]=-0.0153035
+jconfig[3]=-0.668369
+jconfig[4]=0.0119298
+jconfig[5]=0.825524
+jconfig[6]=-0.0069144
 jspdctrl.setPositionCmd(jconfig)
 
 # jconfig[0]=0.0
@@ -128,11 +134,13 @@ cartctrl.preparePorts();
 cartctrl.configure();
 cartctrl.setGains(400,150)
 cartctrl.setGainsOrientation(500,200)
+# cartctrl.setGains(400,100)
+# cartctrl.setGainsOrientation(30,2)
 
 
-cartctrl.useTSgravitycompensation(true)
 cartctrl.addJSgravitycompensation(false)
-cartctrl.impedanceCTRL = false
+cartctrl.useTSgravitycompensation(true)
+cartctrl.impedanceCTRL = false # Check this!
 
 
 
@@ -151,7 +159,7 @@ forcedir[4] = 0;
 forcedir[5] = 0;
 fctrl.setConstantForceVector(forcedir);
 # fctrl.setConstantForce(-30); # TODO DLW check this!
-fctrl.setConstantForce(50); # TODO
+fctrl.setConstantForce(20); # TODO
 
 # In this case it means that we need to compensate for the EEF which are 0.5 Kg so -4~-5N In case of 0 we 
 fctrl.configure()
@@ -174,6 +182,8 @@ prio.setStartCS("Folding_SR_0")
 prio.setNewTargetCS("Folding_SR_0");
 prio.debug_pointintime=1;
 
+prio.substract_gravity=true
+
 ###################################################
 ########                Task               ########
 ###################################################
@@ -194,7 +204,7 @@ var ConnPolicy cp;
 
 # # # Use a proxy connection via the KinDyn component
 connect("robot.out_iiwa14_0_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
-connect("robot.out_iiwa14_0_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
+# connect("robot.out_iiwa14_0_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
 connect("robot.out_iiwa14_0_inertia_fdb","KinDyn.in_inertia_0_port",cp)
 
 # TASK
@@ -266,29 +276,30 @@ connect("prio.out_torques_port", "robot.in_iiwa14_0_JointTorqueCtrl_cmd", cp)
 # connect("cartctrl.out_torques_port","robot.in_iiwa14_0_JointTorqueCtrl_cmd", cp)
 
 
-################################
-ros.import("iHQP_SoT_package")
-loadComponent("sot", "QPSoT_Component")
-setActivityOnCPU("sot",0.001,90,ORO_SCHED_OTHER, 4)
-#
-var string config_path = "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/configs/iiwa14-camera-tmp.yaml"
-sot.loadConfig(config_path)
+# ################################
+# ros.import("iHQP_SoT_package")
+# loadComponent("sot", "QPSoT_Component")
+# setActivityOnCPU("sot",0.001,90,ORO_SCHED_OTHER, 4)
+# #
+# var string config_path = "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/configs/iiwa14-camera-tmp.yaml"
+# sot.loadConfig(config_path)
 
-connect("KinDyn.out_coriolisAndGravity_port", "sot.in_coriolisAndGravity_port", cp)
-# in_desiredTaskSpace_port
-connect("KinDyn.out_robotstatus_port", "sot.in_robotstatus_port", cp)
-### We would need a switch here!
-connect("sot.out_torques_port","robot.in_iiwa14_0_JointTorqueCtrl_cmd", cp)
-sot.configure()
-sot.gravCompDamp = 1
-sot.setJntPosture(0,0.0)
-sot.setJntPosture(1,0.126)
-sot.setJntPosture(2,0.0)
-sot.setJntPosture(3,-0.884)
-sot.setJntPosture(4,0.0)
-sot.setJntPosture(5,0.632)
-sot.setJntPosture(6,0.0)
-################################
+# connect("KinDyn.out_coriolisAndGravity_port", "sot.in_coriolisAndGravity_port", cp)
+# # in_desiredTaskSpace_port
+# connect("KinDyn.out_robotstatus_port", "sot.in_robotstatus_port", cp)
+# ### We would need a switch here!
+# connect("sot.out_torques_port","robot.in_iiwa14_0_JointTorqueCtrl_cmd", cp)
+# sot.configure()
+# sot.gravCompDamp = 1
+# sot.setJntPosture(0,0.0)
+# sot.setJntPosture(1,0.126)
+# sot.setJntPosture(2,0.0)
+# sot.setJntPosture(3,-0.884)
+# sot.setJntPosture(4,0.0)
+# sot.setJntPosture(5,0.632)
+# sot.setJntPosture(6,0.0)
+# stream("sot.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
+# ################################
 
 # STREAMS
 stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints"))
@@ -297,7 +308,6 @@ stream("robot.out_iiwa14_0_jointstate_fdb", ros.topic("/joint_state_publisher/jo
 
 stream("cartctrl.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
 
-stream("sot.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
 
 # stream("traj.in_pose_port", ros.topic("/traj"))
 
