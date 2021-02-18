@@ -217,6 +217,9 @@ orocos_component(${CMAKE_PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}/src/task/rtt_task_describer_synthesis.cpp
 
   ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_pose_interpolator.cpp
+
+  # ${PROJECT_SOURCE_DIR}/src/coordination/rtt_contact_situation_switcher.cpp
+  
 ) # ...you may add multiple source files
 # set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS RTT_COMPONENT)
 target_link_libraries(${CMAKE_PROJECT_NAME} ${EIGEN3_LIBRARIES} ${OROCOS-RTT_LIBRARIES} ${USE_OROCOS_LIBRARIES} ${orocos_kdl_LIBRARIES} ${kdl_parser_LIBRARIES} ${YAML_CPP_LIBRARIES}
