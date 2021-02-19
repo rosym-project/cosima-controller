@@ -308,6 +308,8 @@ stream("robot.out_iiwa14_0_jointstate_fdb", ros.topic("/joint_state_publisher/jo
 
 stream("cartctrl.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
 
+stream("KinDyn.out_cartPos_0_port", ros.topic("/robot/fdb/cart_pose_0"))
+# geometry_msgs.Pose out_cartPos_0_port => (/geometry_msgs/Pose)
 
 # stream("traj.in_pose_port", ros.topic("/traj"))
 

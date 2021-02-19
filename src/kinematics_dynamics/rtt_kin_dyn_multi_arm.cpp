@@ -170,25 +170,6 @@ void RTTKinDynMultiArm::updateHook()
             tmp_override);
 
         // RTT::log(RTT::Error) << "out_inertia_var =\n" << out_inertia_var << RTT::endlog();
-
-        // separate cart pos and vel for publishing
-        for (unsigned int arm = 0; arm < this->num_robots; arm++)
-        {
-            out_cartPos_vars[arm].position.x = out_cartPos_var((arm * 7) + 0);
-            out_cartPos_vars[arm].position.y = out_cartPos_var((arm * 7) + 1);
-            out_cartPos_vars[arm].position.z = out_cartPos_var((arm * 7) + 2);
-            out_cartPos_vars[arm].orientation.w = out_cartPos_var((arm * 7) + 3);
-            out_cartPos_vars[arm].orientation.x = out_cartPos_var((arm * 7) + 4);
-            out_cartPos_vars[arm].orientation.y = out_cartPos_var((arm * 7) + 5);
-            out_cartPos_vars[arm].orientation.z = out_cartPos_var((arm * 7) + 6);
-
-            out_cartVel_vars[arm].linear.x = out_cartVel_var((arm * 6) + 0);
-            out_cartVel_vars[arm].linear.x = out_cartVel_var((arm * 6) + 1);
-            out_cartVel_vars[arm].linear.x = out_cartVel_var((arm * 6) + 2);
-            out_cartVel_vars[arm].angular.x = out_cartVel_var((arm * 6) + 3);
-            out_cartVel_vars[arm].angular.y = out_cartVel_var((arm * 6) + 4);
-            out_cartVel_vars[arm].angular.z = out_cartVel_var((arm * 6) + 5);
-        }
     }
     else // if (in_robotstatus_flow == RTT::NoData)
     {
@@ -220,6 +201,25 @@ void RTTKinDynMultiArm::updateHook()
     //     RTT::log(RTT::Error) << "out_robotstatus_var.position[" << lll << "] = " << out_robotstatus_var.position[lll] << RTT::endlog();
     // }
 
+    // separate cart pos and vel for publishing
+    for (unsigned int arm = 0; arm < this->num_robots; arm++)
+    {
+        out_cartPos_vars[arm].position.x = out_cartPos_var((arm * 7) + 0);
+        out_cartPos_vars[arm].position.y = out_cartPos_var((arm * 7) + 1);
+        out_cartPos_vars[arm].position.z = out_cartPos_var((arm * 7) + 2);
+        out_cartPos_vars[arm].orientation.w = out_cartPos_var((arm * 7) + 3);
+        out_cartPos_vars[arm].orientation.x = out_cartPos_var((arm * 7) + 4);
+        out_cartPos_vars[arm].orientation.y = out_cartPos_var((arm * 7) + 5);
+        out_cartPos_vars[arm].orientation.z = out_cartPos_var((arm * 7) + 6);
+
+        out_cartVel_vars[arm].linear.x = out_cartVel_var((arm * 6) + 0);
+        out_cartVel_vars[arm].linear.x = out_cartVel_var((arm * 6) + 1);
+        out_cartVel_vars[arm].linear.x = out_cartVel_var((arm * 6) + 2);
+        out_cartVel_vars[arm].angular.x = out_cartVel_var((arm * 6) + 3);
+        out_cartVel_vars[arm].angular.y = out_cartVel_var((arm * 6) + 4);
+        out_cartVel_vars[arm].angular.z = out_cartVel_var((arm * 6) + 5);
+    }
+
     out_robotstatus_port.write(out_robotstatus_var);
     out_inertia_port.write(out_inertia_var);
     out_inertiaInv_port.write(out_inertiaInv_var);
@@ -227,11 +227,16 @@ void RTTKinDynMultiArm::updateHook()
     out_coriolis_port.write(out_coriolis_var);
     out_coriolisAndGravity_port.write(out_coriolisAndGravity_var);
     out_cartPos_port.write(out_cartPos_var);
-
     out_cartVel_port.write(out_cartVel_var);
     out_cartAcc_port.write(out_cartAcc_var);
     out_jacobian_port.write(out_jacobian_var);
     out_jacobianDot_port.write(out_jacobianDot_var);
+
+    for (unsigned int arm = 0; arm < this->num_robots; arm++)
+    {
+        out_cartPos_ports[arm]->write(out_cartPos_vars[arm]);
+        out_cartVel_ports[arm]->write(out_cartVel_vars[arm]);
+    }
 }
 
 void RTTKinDynMultiArm::stopHook()
