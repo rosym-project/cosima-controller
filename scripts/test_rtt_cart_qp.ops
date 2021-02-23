@@ -1,0 +1,119 @@
+# ============================================================
+#
+# This file is a part of CoSiMA (CogIMon) project
+#
+# Copyright (C) 2020 by Dennis Leroy Wigand <dwigand@techfak.uni-bielefeld.de>
+#
+# This file may be licensed under the terms of the
+# GNU Lesser General Public License Version 3 (the ``LGPL''),
+# or (at your option) any later version.
+#
+# Software distributed under the License is distributed
+# on an ``AS IS'' basis, WITHOUT WARRANTY OF ANY KIND, either
+# express or implied. See the LGPL for the specific language
+# governing rights and limitations.
+#
+# You should have received a copy of the LGPL along with this
+# program. If not, go to http://www.gnu.org/licenses/lgpl.html
+# or write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# The development of this software was supported by:
+#   CoR-Lab, Research Institute for Cognition and Robotics
+#     Bielefeld University
+#
+# ============================================================
+
+# Load the rtt ros service lib.
+import("rtt_ros")
+# Load the lib.
+ros.import("cosima-robot-sim")
+
+ros.import("rtt_roscomm")
+ros.import("rtt_trajectory_msgs")
+ros.import("eigen_typekit")
+ros.import("rtt_sensor_msgs")
+ros.import("rtt_geometry_msgs")
+
+ros.import("cosima-controller")
+
+# Load the robot interface.
+loadComponent("robot","cosima::RTTRobotManipulatorSim")
+# We need to have the period at 0 to prevent the instantiation of a PeriodicActivity
+setActivityOnCPU("robot",0.001,90,ORO_SCHED_OTHER,0)
+robot.connectBullet()
+# Connect to the already spawned robot in bullet
+robot.connectToRobotByName("iiwa14_0", "bullet")
+
+robot.defineKinematicChain("iiwa14_0", "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf", "world", "iiwa_link_ee")
+robot.configure()
+
+# Make it closer to the real robot! Might decrease the overall accuracy...
+robot.addArtificialGravity("iiwa14_0", false)
+
+var geometry_msgs.Pose cf = geometry_msgs.Pose()
+cf.position.x = 0
+cf.position.y = 0.0
+cf.position.z = 0.0
+cf.orientation.w = 1
+cf.orientation.x = 0
+cf.orientation.y = 0
+cf.orientation.z = 0
+
+loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
+setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_RT,1)
+# KinDyn.addChain("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee")
+KinDyn.addChainWithWorldOffset("KDL","/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee", cf)
+KinDyn.configure()
+KinDyn.ext_override = 0
+
+var ConnPolicy cp;
+
+# # # Use direct robot interface connection
+# connect("robot.out_iiwa14_0_jointstate_fdb","jspdctrl.in_robotstatus_port",cp)
+# connect("robot.out_iiwa14_0_gc_fdb","jspdctrl.in_coriolisAndGravity_port",cp)
+# connect("robot.out_iiwa14_0_inertia_fdb","jspdctrl.in_inertia_port",cp)
+
+# # # Use a proxy connection via the KinDyn component
+connect("robot.out_iiwa14_0_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
+# connect("robot.out_iiwa14_0_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
+connect("robot.out_iiwa14_0_inertia_fdb","KinDyn.in_inertia_0_port",cp)
+
+################################
+ros.import("iHQP_SoT_package")
+loadComponent("sot", "QPSoT_Component")
+setActivityOnCPU("sot",0.001,90,ORO_SCHED_OTHER, 4)
+#
+var string config_path = "/home/flex/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/configs/iiwa14-camera-tmp.yaml"
+sot.loadConfig(config_path)
+
+connect("KinDyn.out_coriolisAndGravity_port", "sot.in_coriolisAndGravity_port", cp)
+# in_desiredTaskSpace_port
+connect("KinDyn.out_robotstatus_port", "sot.in_robotstatus_port", cp)
+### We would need a switch here!
+connect("sot.out_torques_port","robot.in_iiwa14_0_JointTorqueCtrl_cmd", cp)
+sot.configure()
+sot.gravCompDamp = 1
+sot.setJntPosture(0,0.00649109)
+sot.setJntPosture(1,0.0769402)
+sot.setJntPosture(2,-0.0153035)
+sot.setJntPosture(3,-0.668369)
+sot.setJntPosture(4,0.0119298)
+sot.setJntPosture(5,0.825524)
+sot.setJntPosture(6,-0.0069144)
+################################
+
+stream("sot.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
+
+stream("robot.out_iiwa14_0_jointstate_fdb", ros.topic("/joint_state_publisher/joint_states"))
+
+stream("KinDyn.out_cartPos_0_port", ros.topic("/robot/fdb/cart_pose_0"))
+
+# stream("traj.in_pose_port", ros.topic("/traj"))
+
+robot.setControlMode("iiwa14_0", "JointTorqueCtrl")
+robot.start()
+
+KinDyn.start()
+
+sot.start()
