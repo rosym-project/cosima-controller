@@ -1,0 +1,77 @@
+import("rtt_ros")
+ros.import("cosima-fri-iiwa-hw")
+
+ros.import("rtt_roscomm")
+ros.import("rtt_trajectory_msgs")
+ros.import("eigen_typekit")
+ros.import("rtt_sensor_msgs")
+
+ros.import("cosima-controller")
+
+loadComponent("robot","FRI::FRIDriver")
+setActivityOnCPU("robot",0.001,90,ORO_SCHED_OTHER,0)
+robot.fri_ip = "192.170.10.2"
+
+robot.configure()
+
+
+# stream("robot.out_kuka1_jointstate_fdb", ros.topic("robot/state"))
+
+
+loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
+setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_RT,1)
+# KinDyn.addChain("KDL","/home/kogrob/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa7_link_ee")
+KinDyn.addChain("KDL","/home/kogrob/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee")
+KinDyn.configure()
+# KinDyn.ext_override=(1 always, never 0, depends on data -1)
+
+KinDyn.ext_override = 0
+
+stream("KinDyn.out_robotstatus_port", ros.topic("kin/dyn/robot/state"))
+
+
+loadComponent("jspdctrl", "cosima::controller::RTTJointPDCtrl")
+setActivityOnCPU("jspdctrl",0.001,10,ORO_SCHED_RT,2)
+jspdctrl.addRobot(7)
+jspdctrl.configure()
+# jspdctrl.setGains(200,20)
+# jspdctrl.setGains(0,0)
+jspdctrl.setGains(1,0.1)
+jspdctrl.include_gravity=false
+# jspdctrl.include_gravity=true
+
+var eigen_vector jconfig = eigen_vector(7)
+jconfig[0]=1.5185
+jconfig[1]=-0.27916
+jconfig[2]=0
+jconfig[3]=1.25519
+jconfig[4]=0
+jconfig[5]=-1.5709
+jconfig[6]=0
+jspdctrl.setPositionCmd(jconfig)
+
+var ConnPolicy cp;
+
+# # # Use a proxy connection via the KinDyn component
+connect("robot.out_kuka1_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
+# connect("robot.out_kuka1_gc_fdb","KinDyn.in_external_gravity_0_port",cp)
+# connect("robot.out_kuka1_inertia_fdb","KinDyn.in_inertia_0_port",cp)
+
+connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port",cp)
+connect("KinDyn.out_coriolisAndGravity_port","jspdctrl.in_coriolisAndGravity_port",cp)
+connect("KinDyn.out_inertia_port","jspdctrl.in_inertia_port",cp)
+
+# # # Command connection always stays the same
+connect("jspdctrl.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd",cp)
+
+
+stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints"))
+
+# stream("jspdctrl.out_torques_port", ros.topic("debugggg"))
+
+
+# robot.setControlMode("kuka1", "JointTorqueCtrl")
+robot.start()
+
+KinDyn.start()
+jspdctrl.start()

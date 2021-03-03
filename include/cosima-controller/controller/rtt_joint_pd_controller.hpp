@@ -37,6 +37,8 @@
 #include <sensor_msgs/JointState.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 
+// #include <kdl/velocityprofile_trap.hpp>
+
 namespace cosima
 {
 
@@ -124,6 +126,12 @@ namespace cosima
       Eigen::VectorXd errorT;
       Eigen::VectorXd lastCommand;
       Eigen::VectorXd scalingVec;
+
+      // Create trap for changing the gains over time
+      // KDL::VelocityProfile_Trap trap_gen_gains;
+
+      double gain_speed;
+      double target_kp, target_kd;
     };
 
   } // namespace controller

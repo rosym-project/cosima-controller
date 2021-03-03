@@ -43,9 +43,9 @@ RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : RTT::TaskContext(name)
     addOperation("setGains", &RTTJointPDCtrl::setGains, this);
     addOperation("setPositionCmd", &RTTJointPDCtrl::setPositionCmd, this);
 
-    this->kp = 100;
+    this->kp = 0.0;
     addProperty("kp", this->kp);
-    this->kd = 3;
+    this->kd = 0.0;
     addProperty("kd", this->kd);
 
     this->timeStep = 0.005;
@@ -57,12 +57,24 @@ RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : RTT::TaskContext(name)
     addProperty("useFilter", this->useFilter);
     this->maxVelRad = 0.2;
     addProperty("maxVelRad", this->maxVelRad);
+
+    this->gain_speed = 1.0;
+    addProperty("gain_speed", this->gain_speed);
+    this->target_kp = this->kp;
+    addProperty("target_kp", this->target_kp);
+    this->target_kd = this->kd;
+    addProperty("target_kd", this->target_kd);
+
+    // trap_gen_gains = KDL::VelocityProfile_Trap(2.0, 0.1);
 }
 
 void RTTJointPDCtrl::setGains(const double &kp, const double &kd)
 {
-    this->kp = kp;
-    this->kd = kd;
+    // this->kp = kp;
+    // this->kd = kd;
+
+    this->target_kp = kp;
+    this->target_kd = kd;   
 }
 
 double RTTJointPDCtrl::getOrocosTime()
@@ -180,7 +192,13 @@ void RTTJointPDCtrl::updateHook()
         {
             in_joint_cmd_var = virtual_joint_cmd_var;
             virtual_joint_cmd_flow = RTT::OldData;
+
+            PRELOG(Error) << "Received (virtual) command: " << virtual_joint_cmd_var << RTT::endlog();
         }
+    }
+    else if (in_joint_cmd_flow == RTT::NewData)
+    {
+        PRELOG(Error) << "Received command: " << in_joint_cmd_var << RTT::endlog();
     }
 
     in_robotstatus_flow = in_robotstatus_port.read(in_robotstatus_var);
@@ -244,6 +262,10 @@ void RTTJointPDCtrl::updateHook()
         qError(i) = lastCommand(i) - in_robotstatus_var.position[i];
         qdError(i) = this->in_joint_cmd_var.velocities[i] - in_robotstatus_var.velocity[i];
     }
+
+    // adjust gains
+    kp += (this->target_kp - kp) * (this->gain_speed * this->getPeriod());
+    kd += (this->target_kd - kd) * (this->gain_speed * this->getPeriod());
 
     Eigen::MatrixXd Kd = (kd * ones).asDiagonal();
 
