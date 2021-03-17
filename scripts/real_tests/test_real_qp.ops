@@ -167,9 +167,31 @@ connect("jspdctrl.out_torques_port", "robot.in_kuka1_JointTorqueCtrl_cmd", cp)
 
 # stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints"))
 
+
+loadComponent("lin", "cosima::trajectories::LinearTrajectory")
+setActivityOnCPU("lin",0.001,10,ORO_SCHED_RT,2)
+lin.configure()
+
+connect("KinDyn.out_robotstatus_port","lin.in_robotstatus_port",cp)
+connect("lin.out_joint_cmd_port", "jspdctrl.in_joint_cmd_port", cp)
+
 robot.start()
 
 KinDyn.start()
 # # sot.start()
 
 jspdctrl.start()
+
+lin.start()
+
+
+var eigen_vector ttt = eigen_vector(7)
+ttt[0]=1.5
+ttt[1]=-0.279104
+ttt[2]=0.0
+ttt[3]=1.24357
+ttt[4]=0.0
+ttt[5]=-1.57083
+ttt[6]=0.0
+# lin.setJointTargetEigen(ttt)
+

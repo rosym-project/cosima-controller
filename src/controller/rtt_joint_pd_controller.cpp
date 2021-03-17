@@ -196,10 +196,10 @@ void RTTJointPDCtrl::updateHook()
             PRELOG(Error) << "Received (virtual) command: " << virtual_joint_cmd_var << RTT::endlog();
         }
     }
-    else if (in_joint_cmd_flow == RTT::NewData)
-    {
-        PRELOG(Error) << "Received command: " << in_joint_cmd_var << RTT::endlog();
-    }
+    // else if (in_joint_cmd_flow == RTT::NewData)
+    // {
+    //     // PRELOG(Error) << "Received command: " << in_joint_cmd_var << RTT::endlog();
+    // }
 
     in_robotstatus_flow = in_robotstatus_port.read(in_robotstatus_var);
     if (in_robotstatus_flow == RTT::NoData)

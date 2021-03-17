@@ -35,6 +35,8 @@ using namespace trajectories;
 LinearTrajectory::LinearTrajectory(std::string const &name) : RTT::TaskContext(name), once(false), DoF(7), new_js_command(false), max_rad(0.0872665)
 {
     this->addProperty("max_rad", max_rad);
+
+    this->addOperation("setJointTargetEigen", &LinearTrajectory::setJointTargetEigen, this);
 }
 
 double LinearTrajectory::getOrocosTime()
@@ -99,34 +101,47 @@ void LinearTrajectory::updateHook()
     //     this->in_robotstatus_flow = this->in_robotstatus_port.read(this->in_robotstatus_var);
     //     if (this->in_robotstatus_flow != RTT::NoData)
     //     {
-    //         for (unsigned int i = 0; i < this->DoF, i++)
+    //         for (unsigned int i = 0; i < this->DoF; i++)
     //         {
     //             this->js_current(i) = this->in_robotstatus_var.position[i];
     //         } 
     //     }
     // }
 
-    if (!this->new_js_command)
+    if (this->new_js_command)
+    {
+        // get current joint position
+        this->in_robotstatus_flow = this->in_robotstatus_port.read(this->in_robotstatus_var);
+        if (this->in_robotstatus_flow == RTT::NoData)
+        {
+            return;
+        }
+
+        for (unsigned int i = 0; i < this->DoF; i++)
+        {
+            this->js_current(i) = this->in_robotstatus_var.position[i];
+        } 
+
+        this->new_js_command = false;
+        once = true;
+
+        // Calculate norm direction of error vector
+        Eigen::VectorXd js_error = this->js_target - this->js_current;
+        Eigen::VectorXd js_error_normalized = js_error.normalized();
+        // Eigen::VectorXd out = this->js_current + js_error_normalized * (this->max_rad * this->getPeriod());
+    }
+
+    if (!once)
     {
         return;
     }
 
-    // get current joint position
-    this->in_robotstatus_flow = this->in_robotstatus_port.read(this->in_robotstatus_var);
-    if (this->in_robotstatus_flow != RTT::NoData)
-    {
-        return;
-    }
-
-    // Calculate norm direction of error vector
-    Eigen::VectorXd js_error = this->js_target - this->js_current;
-    Eigen::VectorXd js_error_normalized = js_error.normalized();
-    Eigen::VectorXd out = this->js_current + js_error_normalized * (this->max_rad * this->getPeriod());
-
+    this->js_current += js_error_normalized * (this->max_rad * this->getPeriod());
+    
     if ((out-this->js_current).norm() >= js_error.norm())
     {
         out = this->js_target;
-        this->new_js_command = false;
+        // this->new_js_command = false;
     }
 
     // Convert to output
