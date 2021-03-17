@@ -286,11 +286,12 @@ void RTTJointPDCtrl::updateHook()
         out_torques_var += in_coriolisAndGravity_var;
     }
 
-    // // Debug simple controller
-    // for (unsigned int i = 0; i < this->total_dof_size; i++)
-    // {
-    //     out_torques_var(i) = kp * qError(i) + kd * qdError(i) + in_coriolisAndGravity_var(i);
-    // }
+    // Debug simple controller
+    for (unsigned int i = 0; i < this->total_dof_size; i++)
+    {
+        out_torques_var(i) = kp * qError(i) + kd * qdError(i);
+        //+ in_coriolisAndGravity_var(i);
+    }
 
     out_torques_port.write(out_torques_var);
 }

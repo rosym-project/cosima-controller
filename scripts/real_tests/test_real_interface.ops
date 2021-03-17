@@ -74,4 +74,4 @@ stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints
 robot.start()
 
 KinDyn.start()
-jspdctrl.start()
+# jspdctrl.start()

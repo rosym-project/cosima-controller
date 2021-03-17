@@ -66,6 +66,19 @@ message(STATUS "YAML_CPP_LIBRARIES: ${YAML_CPP_LIBRARIES}")
 include_directories(BEFORE SYSTEM ${YAML_CPP_INCLUDE_DIR})
 add_definitions(${YAML_CPP_CFLAGS})
 
+set(OpenSoT_DIR /opt/xbot/lib/cmake/OpenSoT)
+set(XBotInterface_DIR /opt/xbot/lib/cmake/XBotInterface)
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} /opt/xbot)
+
+find_package(OpenSoT REQUIRED)
+if (NOT OpenSoT_FOUND)
+  message (FATAL_ERROR "\nCould not find OpenSoT. Won't build OpenSoT related components.")
+endif()
+message(STATUS "OpenSoT_INCLUDE_DIRS: ${OpenSoT_INCLUDE_DIRS}")
+message(STATUS "XBotInterface_INCLUDE_DIRS: ${XBotInterface_INCLUDE_DIRS}")
+include_directories(${OpenSoT_INCLUDE_DIRS} ${XBotInterface_INCLUDE_DIRS} /opt/xbot/include)
+set(SOLVER_LIBRARIES Eigen3::Eigen ${orocos_kdl_LIBRARIES} ${Boost_LIBRARIES} OpenSoT::OpenSoT XBotInterface::XBotInterface)
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -189,6 +202,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/rtt-bullet-embedded_node.cpp)
 
+if (NOT OpenSoT_FOUND)
 orocos_component(${CMAKE_PROJECT_NAME}
 # Kinematics and Dynamics
   ${PROJECT_SOURCE_DIR}/src/kinematics_dynamics/kin_dyn_multi_arm.cpp
@@ -219,11 +233,54 @@ orocos_component(${CMAKE_PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_pose_interpolator.cpp
 
   # ${PROJECT_SOURCE_DIR}/src/coordination/rtt_contact_situation_switcher.cpp
-  
+
+
 ) # ...you may add multiple source files
+endif()
+
+if (OpenSoT_FOUND)
+orocos_component(${CMAKE_PROJECT_NAME}
+# Kinematics and Dynamics
+  ${PROJECT_SOURCE_DIR}/src/kinematics_dynamics/kin_dyn_multi_arm.cpp
+  ${PROJECT_SOURCE_DIR}/src/kinematics_dynamics/models/kukaLWRModel.cpp
+  ${PROJECT_SOURCE_DIR}/src/kinematics_dynamics/kin_dyn_kdl.cpp
+
+  ${PROJECT_SOURCE_DIR}/src/kinematics_dynamics/rtt_kin_dyn_multi_arm.cpp
+# Controller
+  ${PROJECT_SOURCE_DIR}/src/controller/gravity_compensation/rtt_joint_gravity_compensation.cpp
+  ${PROJECT_SOURCE_DIR}/src/controller/rtt_joint_pd_controller.cpp
+  ${PROJECT_SOURCE_DIR}/src/controller/rtt_constant_force_controller.cpp
+
+  # ${PROJECT_SOURCE_DIR}/src/controller/rtt_cart_impedance_controller.cpp
+  ${PROJECT_SOURCE_DIR}/src/controller/rtt_cart_pid_controller.cpp
+# Prioritization
+  ${PROJECT_SOURCE_DIR}/src/prioritization/rtt_dynamic_task_prioritization.cpp
+  ${PROJECT_SOURCE_DIR}/src/prioritization/rtt_ghc_projections.cpp
+  ${PROJECT_SOURCE_DIR}/src/prioritization/rtt_robot_contact_situations.cpp
+# Task
+  ${PROJECT_SOURCE_DIR}/src/task/vm_geometry_box.cpp
+  ${PROJECT_SOURCE_DIR}/src/task/vm_geometry_bar.cpp
+  ${PROJECT_SOURCE_DIR}/src/task/vm_container.cpp
+  ${PROJECT_SOURCE_DIR}/src/task/robot_container.cpp
+  ${PROJECT_SOURCE_DIR}/src/task/control_objective_container.cpp
+  ${PROJECT_SOURCE_DIR}/src/task/control_component_container.cpp
+  ${PROJECT_SOURCE_DIR}/src/task/rtt_task_describer_synthesis.cpp
+
+  ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_pose_interpolator.cpp
+
+  # ${PROJECT_SOURCE_DIR}/src/coordination/rtt_contact_situation_switcher.cpp
+  ${PROJECT_SOURCE_DIR}/src/controller/rtt_control_stack.cpp
+
+
+) # ...you may add multiple source files
+endif()
+
+
 # set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS RTT_COMPONENT)
 target_link_libraries(${CMAKE_PROJECT_NAME} ${EIGEN3_LIBRARIES} ${OROCOS-RTT_LIBRARIES} ${USE_OROCOS_LIBRARIES} ${orocos_kdl_LIBRARIES} ${kdl_parser_LIBRARIES} ${YAML_CPP_LIBRARIES}
 ${catkin_LIBRARIES}
+${SOLVER_LIBRARIES}
+/opt/xbot/lib
 )
 
 orocos_generate_package(

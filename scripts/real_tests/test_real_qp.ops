@@ -1,0 +1,135 @@
+# ============================================================
+#
+# This file is a part of CoSiMA (CogIMon) project
+#
+# Copyright (C) 2020 by Dennis Leroy Wigand <dwigand@techfak.uni-bielefeld.de>
+#
+# This file may be licensed under the terms of the
+# GNU Lesser General Public License Version 3 (the ``LGPL''),
+# or (at your option) any later version.
+#
+# Software distributed under the License is distributed
+# on an ``AS IS'' basis, WITHOUT WARRANTY OF ANY KIND, either
+# express or implied. See the LGPL for the specific language
+# governing rights and limitations.
+#
+# You should have received a copy of the LGPL along with this
+# program. If not, go to http://www.gnu.org/licenses/lgpl.html
+# or write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# The development of this software was supported by:
+#   CoR-Lab, Research Institute for Cognition and Robotics
+#     Bielefeld University
+#
+# ============================================================
+
+#devel
+#xbot
+
+# Load the rtt ros service lib.
+import("rtt_ros")
+# Load the lib.
+ros.import("cosima-fri-iiwa-hw")
+
+ros.import("rtt_roscomm")
+ros.import("rtt_trajectory_msgs")
+ros.import("eigen_typekit")
+ros.import("rtt_sensor_msgs")
+ros.import("rtt_geometry_msgs")
+
+ros.import("cosima-controller")
+
+
+loadComponent("robot","cosima::RTTFRIiiwaHW")
+setActivityOnCPU("robot",0,90,ORO_SCHED_RT,0)
+robot.fri_ip = "192.170.10.2"
+
+robot.defineKinematicChain("kuka1", "/home/kogrob/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf", "world", "iiwa_link_ee")
+
+robot.configure()
+
+stream("robot.out_kuka1_jointstate_fdb", ros.topic("robot/state"))
+
+
+var geometry_msgs.Pose cf = geometry_msgs.Pose()
+cf.position.x = 0
+cf.position.y = 0.0
+cf.position.z = 0.0
+cf.orientation.w = 1
+cf.orientation.x = 0
+cf.orientation.y = 0
+cf.orientation.z = 0
+
+loadComponent("KinDyn", "cosima::RTTKinDynMultiArm")
+setActivityOnCPU("KinDyn",0.001,10,ORO_SCHED_RT,1)
+KinDyn.addChainWithWorldOffset("KDL","/home/kogrob/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/iiwa14.urdf","world","iiwa_link_ee", cf)
+KinDyn.configure()
+KinDyn.ext_override = 0
+
+var ConnPolicy cp;
+
+connect("robot.out_kuka1_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
+
+################################
+loadComponent("sot", "cosima::controller::RTTControlStack")
+setActivityOnCPU("sot",0.001,90,ORO_SCHED_RT, 4)
+#
+var string config_path = "/home/kogrob/system/flexassembly_dev_ws/src/py-flex-assembly/gym_flexassembly/data/robots/epfl-iiwa14/configs/iiwa14-camera-real.yaml"
+sot.loadConfig(config_path)
+
+connect("KinDyn.out_coriolisAndGravity_port", "sot.in_coriolisAndGravity_port", cp)
+# in_desiredTaskSpace_port
+connect("KinDyn.out_robotstatus_port", "sot.in_robotstatus_port", cp)
+### We would need a switch here!
+# connect("sot.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd", cp)
+sot.configure()
+sot.gravCompDamp = 1
+sot.setJntPosture(0,1.5166)
+sot.setJntPosture(1,-0.279104)
+sot.setJntPosture(2,0.0)
+sot.setJntPosture(3,1.24357)
+sot.setJntPosture(4,0.0)
+sot.setJntPosture(5,-1.57083)
+sot.setJntPosture(6,0.0)
+################################
+
+# stream("sot.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
+
+# stream("KinDyn.out_cartPos_0_port", ros.topic("/robot/fdb/cart_pose_0"))
+sot.setCartDamping(9)
+sot.setCartStiffness(300)
+
+
+loadComponent("jspdctrl", "cosima::controller::RTTJointPDCtrl")
+setActivityOnCPU("jspdctrl",0.001,10,ORO_SCHED_RT,2)
+jspdctrl.addRobot(7)
+jspdctrl.configure()
+jspdctrl.setGains(0,0)
+jspdctrl.useFilter = false
+
+var eigen_vector jconfig = eigen_vector(7)
+jconfig[0]=1.5166
+jconfig[1]=-0.279104
+jconfig[2]=0.0
+jconfig[3]=1.24357
+jconfig[4]=0.0
+jconfig[5]=-1.57083
+jconfig[6]=0.0
+jspdctrl.setPositionCmd(jconfig)
+
+
+connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port",cp)
+connect("KinDyn.out_coriolisAndGravity_port","jspdctrl.in_coriolisAndGravity_port",cp)
+connect("KinDyn.out_inertia_port","jspdctrl.in_inertia_port",cp)
+connect("jspdctrl.out_torques_port", "robot.in_kuka1_JointTorqueCtrl_cmd", cp)
+
+
+# stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints"))
+
+robot.start()
+
+KinDyn.start()
+# # sot.start()
+
+jspdctrl.start()
