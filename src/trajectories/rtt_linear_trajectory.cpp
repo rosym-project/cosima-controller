@@ -130,7 +130,8 @@ void LinearTrajectory::updateHook()
     }
 
     // Convert to output
-    for (unsigned int i = 0; i < this->DoF, i++)
+    for (unsigned int i = 0; i < this->DoF; i++)
+    {
         out_joint_cmd_var.positions[i] = out(i);
         out_joint_cmd_var.velocities[i] = 0.0;
         out_joint_cmd_var.accelerations[i] = 0.0;
@@ -149,7 +150,7 @@ void LinearTrajectory::cleanupHook()
 
 void LinearTrajectory::setJointTargetEigen(const Eigen::VectorXd &target)
 {
-    for (unsigned int i = 0; i < this->DoF, i++)
+    for (unsigned int i = 0; i < this->DoF; i++)
     {
         this->js_target(i) = target(i);
     }
