@@ -82,7 +82,7 @@ connect("KinDyn.out_coriolisAndGravity_port", "sot.in_coriolisAndGravity_port", 
 # in_desiredTaskSpace_port
 connect("KinDyn.out_robotstatus_port", "sot.in_robotstatus_port", cp)
 ### We would need a switch here!
-# connect("sot.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd", cp)
+connect("sot.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd", cp)
 sot.configure()
 sot.gravCompDamp = 1
 sot.setJntPosture(0,1.5166)
@@ -94,9 +94,9 @@ sot.setJntPosture(5,-1.57083)
 sot.setJntPosture(6,0.0)
 ################################
 
-# stream("sot.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
+stream("sot.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
 
-# stream("KinDyn.out_cartPos_0_port", ros.topic("/robot/fdb/cart_pose_0"))
+stream("KinDyn.out_cartPos_0_port", ros.topic("/robot/fdb/cart_pose_0"))
 sot.setCartDamping(9)
 sot.setCartStiffness(300)
 
@@ -120,21 +120,21 @@ jspdctrl.setPositionCmd(jconfig)
 
 # Cart Stiffness
 var eigen_vector css = eigen_vector(6)
-css[0]=100.0
-css[1]=100.0
-css[2]=100.0
-css[3]=30.0
-css[4]=30.0
-css[5]=30.0
+css[0]=800.0
+css[1]=800.0
+css[2]=800.0
+css[3]=80.0
+css[4]=80.0
+css[5]=80.0
 sot.setCartStiffnessE(css)
 # Cart Damping
 var eigen_vector csd = eigen_vector(6)
-csd[0]=4.0
-csd[1]=4.0
-csd[2]=4.0
-csd[3]=2.0
-csd[4]=2.0
-csd[5]=2.0
+csd[0]=10.0
+csd[1]=10.0
+csd[2]=10.0
+csd[3]=4.0
+csd[4]=4.0
+csd[5]=4.0
 sot.setCartDampingE(csd)
 
 # Joint Stiffness
@@ -146,6 +146,15 @@ jss[3]=10.0
 jss[4]=10.0
 jss[5]=10.0
 jss[6]=5.0
+
+# jss[0]=0.0
+# jss[1]=0.0
+# jss[2]=0.0
+# jss[3]=0.0
+# jss[4]=0.0
+# jss[5]=0.0
+# jss[6]=0.0
+
 sot.setJointStiffnessE(jss)
 # Joint Damping
 var eigen_vector jsd = eigen_vector(7)
@@ -154,8 +163,17 @@ jsd[1]=2.0
 jsd[2]=2.0
 jsd[3]=2.0
 jsd[4]=2.0
-jsd[5]=2.0
+jsd[5]=1.0
 jsd[6]=1.0
+
+# jsd[0]=0.0
+# jsd[1]=0.0
+# jsd[2]=0.0
+# jsd[3]=0.0
+# jsd[4]=0.0
+# jsd[5]=0.0
+# jsd[6]=0.0
+
 sot.setJointDampingE(jsd)
 
 
@@ -180,13 +198,15 @@ robot.start()
 KinDyn.start()
 # # sot.start()
 
-jspdctrl.start()
+# jspdctrl.start()
 
-lin.start()
+# lin.start()
 
+
+lin.max_rad=0.1
 
 var eigen_vector ttt = eigen_vector(7)
-ttt[0]=1.5
+ttt[0]=1.0
 ttt[1]=-0.279104
 ttt[2]=0.0
 ttt[3]=1.24357

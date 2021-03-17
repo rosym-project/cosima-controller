@@ -66,6 +66,12 @@ RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : RTT::TaskContext(name)
     addProperty("target_kd", this->target_kd);
 
     // trap_gen_gains = KDL::VelocityProfile_Trap(2.0, 0.1);
+
+    
+    addProperty("qError", this->qError);
+    addProperty("qdError", this->qdError);
+
+    addProperty("lastCommand", this->lastCommand);
 }
 
 void RTTJointPDCtrl::setGains(const double &kp, const double &kd)
