@@ -30,7 +30,8 @@ project(cosima-controller)
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
 
-# SET(CMAKE_BUILD_TYPE RelWithDebInfo)
+#SET(CMAKE_BUILD_TYPE RelWithDebInfo)
+# SET(CMAKE_BUILD_TYPE Debug)
 SET(CMAKE_BUILD_TYPE Release)
 
 find_package(catkin REQUIRED COMPONENTS
@@ -231,6 +232,8 @@ orocos_component(${CMAKE_PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}/src/task/rtt_task_describer_synthesis.cpp
 
   ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_pose_interpolator.cpp
+  # ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_bezier_trajectory.cpp
+  ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_linear_trajectory.cpp
 
   # ${PROJECT_SOURCE_DIR}/src/coordination/rtt_contact_situation_switcher.cpp
 
@@ -267,6 +270,8 @@ orocos_component(${CMAKE_PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}/src/task/rtt_task_describer_synthesis.cpp
 
   ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_pose_interpolator.cpp
+  # ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_bezier_trajectory.cpp
+  ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_linear_trajectory.cpp
 
   # ${PROJECT_SOURCE_DIR}/src/coordination/rtt_contact_situation_switcher.cpp
   ${PROJECT_SOURCE_DIR}/src/controller/rtt_control_stack.cpp
