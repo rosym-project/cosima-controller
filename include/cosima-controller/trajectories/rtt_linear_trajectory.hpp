@@ -74,11 +74,7 @@ namespace cosima
 
       Eigen::VectorXd js_target;
       Eigen::VectorXd js_current;
-
-
-      ////////////// TASK SPACE //////////////
-
-
+      Eigen::VectorXd js_out;
 
 
       unsigned int DoF;
@@ -86,6 +82,10 @@ namespace cosima
       bool once;
 
       double max_rad;
+
+      double timestep;
+
+      KDL::VelocityProfile_Trap js_trap_generator;
     };
 
   } // namespace trajectories

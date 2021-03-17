@@ -32,7 +32,7 @@
 using namespace cosima;
 using namespace trajectories;
 
-LinearTrajectory::LinearTrajectory(std::string const &name) : RTT::TaskContext(name), once(false), DoF(7), new_js_command(false), max_rad(0.0872665)
+LinearTrajectory::LinearTrajectory(std::string const &name) : RTT::TaskContext(name), once(false), DoF(7), new_js_command(false), max_rad(0.0872665), timestep(0.0)
 {
     this->addProperty("max_rad", max_rad);
 
@@ -82,32 +82,28 @@ bool LinearTrajectory::configureHook()
     this->js_target = Eigen::VectorXd::Zero(this->DoF);
     this->js_current = Eigen::VectorXd::Zero(this->DoF);
 
+    this->js_out = Eigen::VectorXd::Zero(this->DoF);
+
     return true;
 }
 
 bool LinearTrajectory::startHook()
 {
-    // st = this->getOrocosTime();
+    this->timestep = 0.0;
     this->once = false;
     this->new_js_command = false;
+    // double t = (time_diff - starttrajectory_time);
+    //         if (t <= js_trap_generator.Duration())
+    //         {
+    //             initialBoxPosition(0) = js_trap_generator.Pos(t);
+    //         }
+    //  js_trap_generator.SetProfile(t_dist(0), initialBoxPositionBAK(0));
+    // this->js_trap_generator = KDL::VelocityProfile_Trap(2.0, 0.1);
     return true;
 }
 
 void LinearTrajectory::updateHook()
 {
-    // if (this->new_js_command)
-    // {
-    //     // get current joint position
-    //     this->in_robotstatus_flow = this->in_robotstatus_port.read(this->in_robotstatus_var);
-    //     if (this->in_robotstatus_flow != RTT::NoData)
-    //     {
-    //         for (unsigned int i = 0; i < this->DoF; i++)
-    //         {
-    //             this->js_current(i) = this->in_robotstatus_var.position[i];
-    //         } 
-    //     }
-    // }
-
     if (this->new_js_command)
     {
         // get current joint position
@@ -122,32 +118,38 @@ void LinearTrajectory::updateHook()
             this->js_current(i) = this->in_robotstatus_var.position[i];
         } 
 
+        this->js_out = this->js_current;
+
         this->new_js_command = false;
-        once = true;
+        this->once = true;
+        this->timestep = 0.0;
 
         // Calculate norm direction of error vector
-        Eigen::VectorXd js_error = this->js_target - this->js_current;
-        Eigen::VectorXd js_error_normalized = js_error.normalized();
+        // Eigen::VectorXd js_error = this->js_target - this->js_current;
+        // Eigen::VectorXd js_error_normalized = js_error.normalized();
         // Eigen::VectorXd out = this->js_current + js_error_normalized * (this->max_rad * this->getPeriod());
+        // this->js_current += js_error_normalized * (this->max_rad * this->getPeriod());
+    
+        
     }
 
-    if (!once)
+    if (!this->once)
     {
         return;
     }
 
-    this->js_current += js_error_normalized * (this->max_rad * this->getPeriod());
-    
-    if ((out-this->js_current).norm() >= js_error.norm())
+    Eigen::VectorXd js_error = this->js_target - this->js_current;
+    Eigen::VectorXd js_error_normalized = js_error.normalized();
+    this->js_out += js_error_normalized * (this->max_rad * this->getPeriod());
+    if ((this->js_out-this->js_current).norm() >= js_error.norm())
     {
-        out = this->js_target;
-        // this->new_js_command = false;
+        this->js_out = this->js_target;
     }
 
     // Convert to output
     for (unsigned int i = 0; i < this->DoF; i++)
     {
-        out_joint_cmd_var.positions[i] = out(i);
+        out_joint_cmd_var.positions[i] = this->js_out(i);
         out_joint_cmd_var.velocities[i] = 0.0;
         out_joint_cmd_var.accelerations[i] = 0.0;
         out_joint_cmd_var.effort[i] = 0.0;
