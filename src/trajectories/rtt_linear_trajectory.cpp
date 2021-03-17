@@ -32,9 +32,9 @@
 using namespace cosima;
 using namespace trajectories;
 
-LinearTrajectory::LinearTrajectory(std::string const &name) : RTT::TaskContext(name), once(false)
+LinearTrajectory::LinearTrajectory(std::string const &name) : RTT::TaskContext(name), once(false), DoF(7), new_js_command(false), max_rad(0.0872665)
 {
-    
+    this->addProperty("max_rad", max_rad);
 }
 
 double LinearTrajectory::getOrocosTime()
@@ -44,19 +44,99 @@ double LinearTrajectory::getOrocosTime()
 
 bool LinearTrajectory::configureHook()
 {
+    if (ports()->getPort("in_robotstatus_port"))
+    {
+        ports()->removePort("in_robotstatus_port");
+    }
+    if (ports()->getPort("out_joint_cmd_port"))
+    {
+        ports()->removePort("out_joint_cmd_port");
+    }
+
+    this->in_robotstatus_var = sensor_msgs::JointState();
+    this->out_joint_cmd_var = trajectory_msgs::JointTrajectoryPoint();
+    for (unsigned int i = 0; i < this->DoF; i++)
+    {
+        in_robotstatus_var.position.push_back(0.0);
+        in_robotstatus_var.velocity.push_back(0.0);
+        in_robotstatus_var.effort.push_back(0.0);
+
+        out_joint_cmd_var.positions.push_back(0.0);
+        out_joint_cmd_var.velocities.push_back(0.0);
+        out_joint_cmd_var.accelerations.push_back(0.0);
+        out_joint_cmd_var.effort.push_back(0.0);
+    }
+
+    this->in_robotstatus_flow = RTT::NoData;
+    this->in_robotstatus_port.setName("in_robotstatus_port");
+    this->in_robotstatus_port.doc("Input port for receiving the current jointspace status");
+    ports()->addPort(this->in_robotstatus_port);
+
+    this->out_joint_cmd_port.setName("out_joint_cmd_port");
+    this->out_joint_cmd_port.doc("Output port for sending the desired jointspace command");
+    this->out_joint_cmd_port.setDataSample(this->out_joint_cmd_var);
+    ports()->addPort(this->out_joint_cmd_port);
+
+    this->js_target = Eigen::VectorXd::Zero(this->DoF);
+    this->js_current = Eigen::VectorXd::Zero(this->DoF);
+
     return true;
 }
 
 bool LinearTrajectory::startHook()
 {
-    st = this->getOrocosTime();
-    once = false;
+    // st = this->getOrocosTime();
+    this->once = false;
+    this->new_js_command = false;
     return true;
 }
 
 void LinearTrajectory::updateHook()
 {
-    
+    // if (this->new_js_command)
+    // {
+    //     // get current joint position
+    //     this->in_robotstatus_flow = this->in_robotstatus_port.read(this->in_robotstatus_var);
+    //     if (this->in_robotstatus_flow != RTT::NoData)
+    //     {
+    //         for (unsigned int i = 0; i < this->DoF, i++)
+    //         {
+    //             this->js_current(i) = this->in_robotstatus_var.position[i];
+    //         } 
+    //     }
+    // }
+
+    if (!this->new_js_command)
+    {
+        return;
+    }
+
+    // get current joint position
+    this->in_robotstatus_flow = this->in_robotstatus_port.read(this->in_robotstatus_var);
+    if (this->in_robotstatus_flow != RTT::NoData)
+    {
+        return;
+    }
+
+    // Calculate norm direction of error vector
+    Eigen::VectorXd js_error = this->js_target - this->js_current;
+    Eigen::VectorXd js_error_normalized = js_error.normalized();
+    Eigen::VectorXd out = this->js_current + js_error_normalized * (this->max_rad * this->getPeriod());
+
+    if ((out-this->js_current).norm() >= js_error.norm())
+    {
+        out = this->js_target;
+        this->new_js_command = false;
+    }
+
+    // Convert to output
+    for (unsigned int i = 0; i < this->DoF, i++)
+        out_joint_cmd_var.positions[i] = out(i);
+        out_joint_cmd_var.velocities[i] = 0.0;
+        out_joint_cmd_var.accelerations[i] = 0.0;
+        out_joint_cmd_var.effort[i] = 0.0;
+    }
+    out_joint_cmd_port.write(out_joint_cmd_var);
 }
 
 void LinearTrajectory::stopHook()
@@ -65,10 +145,15 @@ void LinearTrajectory::stopHook()
 
 void LinearTrajectory::cleanupHook()
 {
-    if (this->ports()->getPort("in_pose_port"))
+}
+
+void LinearTrajectory::setJointTargetEigen(const Eigen::VectorXd &target)
+{
+    for (unsigned int i = 0; i < this->DoF, i++)
     {
-        this->ports()->removePort("in_pose_port");
+        this->js_target(i) = target(i);
     }
+    this->new_js_command = true;
 }
 
 //this macro should appear only once per library

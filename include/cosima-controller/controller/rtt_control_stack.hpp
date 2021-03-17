@@ -37,6 +37,12 @@ namespace cosima
         void stopHook();
         void cleanupHook();
 
+        void RTTControlStack::setJointStiffnessE(const Eigen::VectorXd &KP);
+        void RTTControlStack::setJointDampingE(const Eigen::VectorXd &KD);
+
+        void RTTControlStack::setCartStiffnessE(const Eigen::VectorXd &KP);
+        void RTTControlStack::setCartDampingE(const Eigen::VectorXd &KD);
+
     private:
         /*---------------------------------input ports--------------------------------*/
         // RTT::InputPort<Eigen::VectorXd> cart_imped_high_feedforward_forces_input_port;

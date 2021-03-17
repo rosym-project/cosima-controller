@@ -34,6 +34,9 @@
 #include <iostream>
 
 // ROS TYPE includes
+#include <sensor_msgs/JointState.h>
+#include <trajectory_msgs/JointTrajectoryPoint.h>
+
 #include <geometry_msgs/Pose.h>
 
 // KDL includes
@@ -56,8 +59,33 @@ namespace cosima
       void stopHook();
       void cleanupHook();
 
+      void setJointTargetEigen(const Eigen::VectorXd &target);
+
     private:
       double getOrocosTime();
+
+      ////////////// JOINT SPACE //////////////
+      RTT::InputPort<sensor_msgs::JointState> in_robotstatus_port;
+      RTT::FlowStatus in_robotstatus_flow;
+      sensor_msgs::JointState in_robotstatus_var;
+
+      RTT::OutputPort<trajectory_msgs::JointTrajectoryPoint> out_joint_cmd_port;
+      trajectory_msgs::JointTrajectoryPoint out_joint_cmd_var;
+
+      Eigen::VectorXd js_target;
+      Eigen::VectorXd js_current;
+
+
+      ////////////// TASK SPACE //////////////
+
+
+
+
+      unsigned int DoF;
+      bool new_js_command;
+      bool once;
+
+      double max_rad;
     };
 
   } // namespace trajectories

@@ -118,6 +118,46 @@ jconfig[5]=-1.57083
 jconfig[6]=0.0
 jspdctrl.setPositionCmd(jconfig)
 
+# Cart Stiffness
+var eigen_vector css = eigen_vector(6)
+css[0]=100.0
+css[1]=100.0
+css[2]=100.0
+css[3]=30.0
+css[4]=30.0
+css[5]=30.0
+sot.setCartStiffnessE(css)
+# Cart Damping
+var eigen_vector csd = eigen_vector(6)
+csd[0]=4.0
+csd[1]=4.0
+csd[2]=4.0
+csd[3]=2.0
+csd[4]=2.0
+csd[5]=2.0
+sot.setCartDampingE(csd)
+
+# Joint Stiffness
+var eigen_vector jss = eigen_vector(7)
+jss[0]=10.0
+jss[1]=10.0
+jss[2]=10.0
+jss[3]=10.0
+jss[4]=10.0
+jss[5]=10.0
+jss[6]=5.0
+sot.setJointStiffnessE(jss)
+# Joint Damping
+var eigen_vector jsd = eigen_vector(7)
+jsd[0]=2.0
+jsd[1]=2.0
+jsd[2]=2.0
+jsd[3]=2.0
+jsd[4]=2.0
+jsd[5]=2.0
+jsd[6]=1.0
+sot.setJointDampingE(jsd)
+
 
 connect("KinDyn.out_robotstatus_port","jspdctrl.in_robotstatus_port",cp)
 connect("KinDyn.out_coriolisAndGravity_port","jspdctrl.in_coriolisAndGravity_port",cp)

@@ -55,6 +55,11 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
     //
     des_posture_out_data = Eigen::VectorXd::Zero(7);
     addOperation("setJntPosture", &RTTControlStack::setJntPosture, this, RTT::ClientThread);
+
+    addOperation("setJointStiffnessE", &RTTControlStack::setJointStiffnessE, this, RTT::ClientThread);
+    addOperation("setJointDampingE", &RTTControlStack::setJointDampingE, this, RTT::ClientThread);
+    addOperation("setCartStiffnessE", &RTTControlStack::setCartStiffnessE, this, RTT::ClientThread);
+    addOperation("setCartDampingE", &RTTControlStack::setCartDampingE, this, RTT::ClientThread);
 }
 
 bool RTTControlStack::configureHook()
@@ -162,18 +167,45 @@ void RTTControlStack::setJntPosture(int idx, double value)
 
 void RTTControlStack::setCartStiffness(double KP)
 {
-    cart_stiff_out_data = Eigen::MatrixXd::Identity(6, 6) * KP;
-    cart_stiff_out_data(3,3) *= 0.1;
-    cart_stiff_out_data(4,4) *= 0.1;
-    cart_stiff_out_data(5,5) *= 0.1;
+    // cart_stiff_out_data = Eigen::MatrixXd::Identity(6, 6) * KP;
+
+    cart_stiff_out_data(0,0) = KP;
+    cart_stiff_out_data(1,1) = KP;
+    cart_stiff_out_data(2,2) = KP;
+
+    cart_stiff_out_data(3,3) = KP * 0.1;
+    cart_stiff_out_data(4,4) = KP * 0.1;
+    cart_stiff_out_data(5,5) = KP * 0.1;
+}
+
+void RTTControlStack::setCartStiffnessE(const Eigen::VectorXd &KP)
+{
+    // cart_stiff_out_data = Eigen::MatrixXd::Identity(6, 6);
+    for (unsigned int i = 0; i < 6; i++)
+    {
+        cart_stiff_out_data(i,i) = KP(i);
+    }
 }
 
 void RTTControlStack::setCartDamping(double KD)
 {
-    cart_damp_out_data = Eigen::MatrixXd::Identity(6, 6) * KD;
-    cart_damp_out_data(3,3) *= 0.1;
-    cart_damp_out_data(4,4) *= 0.1;
-    cart_damp_out_data(5,5) *= 0.1;
+    // cart_damp_out_data = Eigen::MatrixXd::Identity(6, 6) * KD;
+    cart_damp_out_data(0,0) = KD;
+    cart_damp_out_data(1,1) = KD;
+    cart_damp_out_data(2,2) = KD;
+
+    cart_damp_out_data(3,3) = KD * 0.1;
+    cart_damp_out_data(4,4) = KD * 0.1;
+    cart_damp_out_data(5,5) = KD * 0.1;
+}
+
+void RTTControlStack::setCartDampingE(const Eigen::VectorXd &KD)
+{
+    // cart_damp_out_data = Eigen::MatrixXd::Identity(6, 6);
+    for (unsigned int i = 0; i < 6; i++)
+    {
+        cart_damp_out_data(i,i) = KD(i);
+    }
 }
 
 void RTTControlStack::setJointStiffness(double KP)
@@ -181,9 +213,27 @@ void RTTControlStack::setJointStiffness(double KP)
     jnt_stiff_out_data = Eigen::MatrixXd::Identity(7, 7) * KP;
 }
 
+void RTTControlStack::setJointStiffnessE(const Eigen::VectorXd &KP)
+{
+    // jnt_stiff_out_data = Eigen::MatrixXd::Identity(7, 7);
+    for (unsigned int i = 0; i < 7; i++)
+    {
+        jnt_stiff_out_data(i,i) = KP(i);
+    }
+}
+
 void RTTControlStack::setJointDamping(double KD)
 {
     jnt_damp_out_data = Eigen::MatrixXd::Identity(7, 7) * KD;
+}
+
+void RTTControlStack::setJointDampingE(const Eigen::VectorXd &KD)
+{
+    // jnt_damp_out_data = Eigen::MatrixXd::Identity(7, 7);
+    for (unsigned int i = 0; i < 7; i++)
+    {
+        jnt_damp_out_data(i,i) = KD(i);
+    }
 }
 
 void RTTControlStack::setFF(double x, double y, double z)
