@@ -5,7 +5,7 @@
 using namespace cosima;
 using namespace controller;
 
-RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(name)
+RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(name), stack_type(0)
 {
     model_configured = false;
     // TODO: make the following automatic rather than hard-coded
@@ -32,6 +32,8 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
 
     kv = 0.0;
     addProperty("gravCompDamp", kv);
+
+    addProperty("stack_type", stack_type);
 
     init_ports();
 
@@ -80,6 +82,7 @@ bool RTTControlStack::configureHook()
         this->model->setJointPosition(q);
         this->model->update();
         iHQP_SoT.reset(new qp_problem(model, q));
+        iHQP_SoT_cart_wo_js.reset(new qp_problem_cart_wo_js(model, q));
         return true;
     } else {
         RTT::log(RTT::Error) <<"Some ports are not connected or the model noot configured."<<RTT::endlog();
@@ -110,13 +113,28 @@ void RTTControlStack::updateHook()
     read_ports();
     update_model();
     set_sot_references();
-    iHQP_SoT->stack->update(q); //not sure if passing q make any sense...
 
-    if (!iHQP_SoT->qp_problem_solver->solve(out_torques_data)) {
-        RTT::log(RTT::Warning) <<"Solution NOT found."<<RTT::endlog();
-        // Below is better to send previous solution instead of zero
-        // or something that does not constitute a hidden assumption
-        out_torques_data.setZero(7);
+    if (stack_type == 0)
+    {
+        iHQP_SoT->stack->update(q); //not sure if passing q make any sense...
+
+        if (!iHQP_SoT->qp_problem_solver->solve(out_torques_data)) {
+            RTT::log(RTT::Warning) <<"Solution NOT found."<<RTT::endlog();
+            // Below is better to send previous solution instead of zero
+            // or something that does not constitute a hidden assumption
+            out_torques_data.setZero(7);
+        }
+    }
+    else if (stack_type == 1)
+    {
+        iHQP_SoT_cart_wo_js->stack->update(q); //not sure if passing q make any sense...
+
+        if (!iHQP_SoT_cart_wo_js->qp_problem_solver->solve(out_torques_data)) {
+            RTT::log(RTT::Warning) <<"Solution NOT found."<<RTT::endlog();
+            // Below is better to send previous solution instead of zero
+            // or something that does not constitute a hidden assumption
+            out_torques_data.setZero(7);
+        }
     }
     // out_torques_port.write(out_torques_data + in_coriolisAndGravity_data - kv * qd);
     out_torques_port.write(out_torques_data);
@@ -135,7 +153,18 @@ void RTTControlStack::set_sot_references()
   rotation.w() = in_desiredTaskSpace_var.transforms[0].rotation.w;
   pose_out_data.block<3,3>(0,0) = rotation.toRotationMatrix();
   // pass the set-points read from ports to the SoT
-  iHQP_SoT->update(
+
+    //   if (stack_type) ...
+    iHQP_SoT->update(
+               ff_out_data,
+               cart_stiff_out_data,
+               cart_damp_out_data,
+               pose_out_data,
+               jnt_stiff_out_data,
+               jnt_damp_out_data,
+               des_posture_out_data);
+
+    iHQP_SoT_cart_wo_js->update(
                ff_out_data,
                cart_stiff_out_data,
                cart_damp_out_data,
@@ -324,11 +353,23 @@ void RTTControlStack::printInfo()
 {
     Eigen::MatrixXd tmp = Eigen::MatrixXd::Zero(4,4);
     Eigen::Affine3d affine_tmp;
-    iHQP_SoT->cart_imped_high->getActualPose(tmp);
-    std::cout<<"cart_imped_high->getActualPose ->\n"<<tmp<<"\n----------------------"<<std::endl;
-    std::cout<<"base: "<<iHQP_SoT->cart_imped_high->getBaseLink()<<std::endl;
-    std::cout<<"ee: "<<iHQP_SoT->cart_imped_high->getDistalLink()<<std::endl;
-    this->model->getPose(iHQP_SoT->cart_imped_high->getDistalLink(),affine_tmp);
+    if (stack_type == 0)
+    {
+        iHQP_SoT->cart_imped_high->getActualPose(tmp);
+        std::cout<<"cart_imped_high->getActualPose ->\n"<<tmp<<"\n----------------------"<<std::endl;
+        std::cout<<"base: "<<iHQP_SoT->cart_imped_high->getBaseLink()<<std::endl;
+        std::cout<<"ee: "<<iHQP_SoT->cart_imped_high->getDistalLink()<<std::endl;
+        this->model->getPose(iHQP_SoT->cart_imped_high->getDistalLink(),affine_tmp);
+    }
+    else if (stack_type == 1)
+    {
+        iHQP_SoT_cart_wo_js->cart_imped_high->getActualPose(tmp);
+        std::cout<<"cart_imped_high->getActualPose ->\n"<<tmp<<"\n----------------------"<<std::endl;
+        std::cout<<"base: "<<iHQP_SoT_cart_wo_js->cart_imped_high->getBaseLink()<<std::endl;
+        std::cout<<"ee: "<<iHQP_SoT_cart_wo_js->cart_imped_high->getDistalLink()<<std::endl;
+        this->model->getPose(iHQP_SoT_cart_wo_js->cart_imped_high->getDistalLink(),affine_tmp);
+    }
+    
     std::cout<<"model->getPose ->\n" << affine_tmp.matrix() << "\n----------------------"<<std::endl;
     std::cout<<"q: \n"<<q.transpose()<<"\nqd: \n"<<qd.transpose()<<"\ntau: \n"<<tau.transpose()<<std::endl;
     std::cout<<"DES INPUT: \n"<<in_desiredTaskSpace_var<<std::endl;

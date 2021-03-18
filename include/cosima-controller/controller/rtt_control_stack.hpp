@@ -22,6 +22,7 @@
 #include <geometry_msgs/Twist.h>
 
 #include "rtt_stack_cart.hpp"
+#include "rtt_stack_cart_wo_js.hpp"
 
 namespace cosima
 {
@@ -86,6 +87,8 @@ namespace cosima
 
         /*-------------------------backend solvers and stacks-------------------------*/
         boost::shared_ptr<qp_problem> iHQP_SoT;
+        // 
+        boost::shared_ptr<qp_problem_cart_wo_js> iHQP_SoT_cart_wo_js;
         // TODO: This is hard coded. FIXIT!
         XBot::ModelInterface::Ptr model;
         bool model_configured;
@@ -135,6 +138,8 @@ namespace cosima
         RTT::InputPort<Eigen::VectorXd> in_coriolisAndGravity_port;
         RTT::FlowStatus in_coriolisAndGravity_flow;
         Eigen::VectorXd in_coriolisAndGravity_data;
+
+        int stack_type;
     };
 
   } // namespace controller
