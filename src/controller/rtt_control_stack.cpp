@@ -297,18 +297,20 @@ void RTTControlStack::init_ports()
     in_desiredTaskSpace_var = trajectory_msgs::MultiDOFJointTrajectoryPoint();
     in_desiredTaskSpace_var.transforms.push_back(geometry_msgs::Transform());
     //
-    in_desiredTaskSpace_var.transforms[0].translation.x = -0.0287248;
-    in_desiredTaskSpace_var.transforms[0].translation.y = -0.529656 ;
-    in_desiredTaskSpace_var.transforms[0].translation.z = 0.467355  ;
-    in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0174455 ;
-    in_desiredTaskSpace_var.transforms[0].rotation.x = 0.687507  ;
-    in_desiredTaskSpace_var.transforms[0].rotation.y = -0.72578  ;
-    in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0165435 ;
-
-
-
-
-
+    // in_desiredTaskSpace_var.transforms[0].translation.x = -0.0287248;
+    // in_desiredTaskSpace_var.transforms[0].translation.y = -0.529656 ;
+    // in_desiredTaskSpace_var.transforms[0].translation.z = 0.467355  ;
+    // in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0174455 ;
+    // in_desiredTaskSpace_var.transforms[0].rotation.x = 0.687507  ;
+    // in_desiredTaskSpace_var.transforms[0].rotation.y = -0.72578  ;
+    // in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0165435 ;
+    in_desiredTaskSpace_var.transforms[0].translation.x = 0.000158222;
+    in_desiredTaskSpace_var.transforms[0].translation.y = -0.675439 ;
+    in_desiredTaskSpace_var.transforms[0].translation.z = 0.285982  ;
+    in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0150682 ;
+    in_desiredTaskSpace_var.transforms[0].rotation.x = 0.707013  ;
+    in_desiredTaskSpace_var.transforms[0].rotation.y = -0.706876  ;
+    in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0152298 ;
 
 
 
