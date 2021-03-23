@@ -102,6 +102,14 @@ void RTTKinDynMultiArm::updateHook()
         }
         // RTT::log(RTT::Error) << "in_inertia_var_stacked =\n" << in_inertia_var_stacked << RTT::endlog();
 
+        // Take care of externally provided torque
+        if (in_external_torque_ports[arms]->connected())
+        {
+            in_external_torque_vars[arms].setZero(); // TODO good like this?
+            in_external_torque_flows[arms] = in_external_torque_ports[arms]->read(in_external_torque_vars[arms]);
+            in_external_torque_var_stacked.segment(e_index_begin, e_index_end) = in_external_torque_vars[arms];
+        }
+
         // Take care of externally provided robot state
         in_robotstatus_flows[arms] = in_robotstatus_ports[arms]->read(in_robotstatus_vars[arms]);
         sensor_msgs::JointState _tmp_j_state = in_robotstatus_vars[arms];
@@ -166,6 +174,8 @@ void RTTKinDynMultiArm::updateHook()
             out_jacobian_var,
             out_jacobianDot_var,
             in_external_gravity_var_stacked,
+            out_external_wrench_var,
+            in_external_gravity_var_stacked,
             in_inertia_var_stacked,
             tmp_override);
 
@@ -190,6 +200,7 @@ void RTTKinDynMultiArm::updateHook()
         out_cartAcc_var.setZero();
         out_jacobian_var.setZero();
         out_jacobianDot_var.setZero();
+        out_external_wrench_var.setZero();
     }
 
     // PRELOG(Error) << "DEBUG: KIN 2 out_coriolisAndGravity_var = " << out_coriolisAndGravity_var << RTT::endlog();
@@ -231,11 +242,13 @@ void RTTKinDynMultiArm::updateHook()
     out_cartAcc_port.write(out_cartAcc_var);
     out_jacobian_port.write(out_jacobian_var);
     out_jacobianDot_port.write(out_jacobianDot_var);
+    out_external_wrench_port.write(out_external_wrench_var);
 
     for (unsigned int arm = 0; arm < this->num_robots; arm++)
     {
         out_cartPos_ports[arm]->write(out_cartPos_vars[arm]);
         out_cartVel_ports[arm]->write(out_cartVel_vars[arm]);
+        out_external_wrench_ports[arm]->write(out_external_wrench_vars[arm]);
     }
 }
 
@@ -303,12 +316,15 @@ void RTTKinDynMultiArm::preparePorts()
         ports()->removePort("out_cartAcc_port");
         ports()->removePort("out_jacobian_port");
         ports()->removePort("out_jacobianDot_port");
+        ports()->removePort("out_external_wrench_port");
 
         for (int i = 0; i < this->solver_manager.getNumberOfRobots(); i++)
         {
             ports()->removePort("out_cartPos_" + std::to_string(i) + "_port");
             ports()->removePort("out_cartVel_" + std::to_string(i) + "_port");
             ports()->removePort("in_external_gravity_" + std::to_string(i) + "_port");
+            ports()->removePort("in_external_torque_" + std::to_string(i) + "_port");
+            ports()->removePort("out_external_wrench_" + std::to_string(i) + "_port");
         }
     }
 
@@ -324,6 +340,7 @@ void RTTKinDynMultiArm::preparePorts()
 
     in_external_gravity_var_stacked = Eigen::VectorXd::Zero(_total_dofs);
     in_inertia_var_stacked = Eigen::MatrixXd::Zero(_total_dofs, _total_dofs);
+    in_external_torque_var_stacked = Eigen::VectorXd::Zero(_total_dofs);
 
     // prepare output
     out_robotstatus_port.setName("out_robotstatus_port");
@@ -401,6 +418,13 @@ void RTTKinDynMultiArm::preparePorts()
     out_jacobianDot_port.setDataSample(out_jacobianDot_var);
     ports()->addPort(out_jacobianDot_port);
 
+    out_external_wrench_var = Eigen::VectorXd::Zero(6 * this->solver_manager.getNumberOfRobots());
+    out_external_wrench_var.setZero();
+    out_external_wrench_port.setName("out_external_wrench_port");
+    out_external_wrench_port.doc("Output port for combined external wrench");
+    out_external_wrench_port.setDataSample(out_external_wrench_var);
+    ports()->addPort(out_external_wrench_port);
+
     for (int i = 0; i < this->solver_manager.getNumberOfRobots(); i++)
     {
         sensor_msgs::JointState _tmp_robotstatus;
@@ -464,6 +488,28 @@ void RTTKinDynMultiArm::preparePorts()
         in_inertia_ports.at(i)->setName("in_inertia_" + std::to_string(i) + "_port");
         in_inertia_ports.at(i)->doc("Input port for receiving an external inertia matrix.");
         ports()->addPort(*(in_inertia_ports.at(i).get()));
+
+        in_external_torque_ports.push_back(std::unique_ptr<RTT::InputPort<Eigen::VectorXd>>(new RTT::InputPort<Eigen::VectorXd>));
+        in_external_torque_flows.push_back(RTT::NoData);
+        in_external_torque_vars.push_back(Eigen::VectorXd::Zero(_total_dofs / this->solver_manager.getNumberOfRobots())); // TODO make this variable for the added chain.
+        in_external_torque_ports.at(i)->setName("in_external_torque_" + std::to_string(i) + "_port");
+        in_external_torque_ports.at(i)->doc("Input port for receiving an external torque vector.");
+        ports()->addPort(*(in_external_torque_ports.at(i).get()));
+
+        geometry_msgs::Wrench _tmp_wrench;
+        _tmp_wrench.force.x = 0.0;
+        _tmp_wrench.force.y = 0.0;
+        _tmp_wrench.force.z = 0.0;
+        _tmp_wrench.torque.x = 0.0;
+        _tmp_wrench.torque.y = 0.0;
+        _tmp_wrench.torque.z = 0.0;
+        out_external_wrench_vars.push_back(_tmp_wrench);
+
+        out_external_wrench_ports.push_back(std::unique_ptr<RTT::OutputPort<geometry_msgs::Wrench>>(new RTT::OutputPort<geometry_msgs::Wrench>));
+        out_external_wrench_ports.at(i)->setName("out_external_wrench_" + std::to_string(i) + "_port");
+        out_external_wrench_ports.at(i)->doc("Output port for sending the external wrench");
+        out_external_wrench_ports.at(i)->setDataSample(_tmp_wrench);
+        ports()->addPort(*(out_external_wrench_ports.at(i).get()));
     }
 
     this->portsArePrepared = true;

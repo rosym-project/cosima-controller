@@ -67,7 +67,8 @@ void KinDynMultiArm::initializeRequiredVariables(
     Eigen::VectorXd &out_cartVel,
     Eigen::VectorXd &out_cartAcc,
     Eigen::MatrixXd &out_jacobian,
-    Eigen::MatrixXd &out_jacobianDot)
+    Eigen::MatrixXd &out_jacobianDot,
+    Eigen::VectorXd &out_ext_wrench)
 {
     unsigned int _total_joint_dof = this->getTotalNumberJointDofs();
     unsigned int _total_task_dof = 6 * this->vec_kin_dyn_solvers.size();
@@ -83,6 +84,7 @@ void KinDynMultiArm::initializeRequiredVariables(
     out_cartAcc = Eigen::VectorXd::Zero(_total_task_dof);
     out_jacobian = Eigen::MatrixXd::Zero(_total_task_dof, _total_joint_dof);
     out_jacobianDot = Eigen::MatrixXd::Zero(_total_task_dof, _total_joint_dof);
+    out_ext_wrench = Eigen::VectorXd::Zero(_total_task_dof);
 }
 
 void KinDynMultiArm::computeAllAsStack(
@@ -97,6 +99,8 @@ void KinDynMultiArm::computeAllAsStack(
     Eigen::VectorXd &out_cartAcc,
     Eigen::MatrixXd &out_jacobian,
     Eigen::MatrixXd &out_jacobianDot,
+    const Eigen::VectorXd &in_ext_torque,
+    Eigen::VectorXd &out_ext_wrench,
     const Eigen::VectorXd &ext_coriolisAndGravity,
     const Eigen::MatrixXd &ext_inertia,
     bool override)
@@ -133,6 +137,8 @@ void KinDynMultiArm::computeAllAsStack(
                                                        out_cartAcc,
                                                        out_jacobian,
                                                        out_jacobianDot,
+                                                       in_ext_torque,
+                                                       out_ext_wrench,
                                                        ext_coriolisAndGravity,
                                                        ext_inertia,
                                                        override);
@@ -152,7 +158,9 @@ void KinDynMultiArm::computeSingle(
     Eigen::VectorXd &out_cartVel,
     Eigen::VectorXd &out_cartAcc,
     Eigen::MatrixXd &out_jacobian,
-    Eigen::MatrixXd &out_jacobianDot)
+    Eigen::MatrixXd &out_jacobianDot,
+    const Eigen::VectorXd &in_ext_torque,
+    Eigen::VectorXd &out_ext_wrench)
 {
     return this->vec_kin_dyn_solvers[index]->compute(in_robotstatus_as_single,
                                                      out_inertia,
@@ -164,7 +172,9 @@ void KinDynMultiArm::computeSingle(
                                                      out_cartVel,
                                                      out_cartAcc,
                                                      out_jacobian,
-                                                     out_jacobianDot);
+                                                     out_jacobianDot,
+                                                     in_ext_torque,
+                                                     out_ext_wrench);
 }
 
 bool KinDynMultiArm::addRobotChain(const std::string &solver_type, const std::string &modelname, const std::string &chain_root_link_name, const std::string &chain_tip_link_name)

@@ -31,6 +31,29 @@
 
 using namespace cosima;
 
+// https://gist.github.com/javidcf/25066cf85e71105d57b6
+template <class MatT>
+Eigen::Matrix<typename MatT::Scalar, MatT::ColsAtCompileTime, MatT::RowsAtCompileTime>
+pseudo_inverse(const MatT &mat, typename MatT::Scalar tolerance = typename MatT::Scalar{1e-4}) // choose appropriately
+{
+    typedef typename MatT::Scalar Scalar;
+    auto svd = mat.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
+    const auto &singularValues = svd.singularValues();
+    Eigen::Matrix<Scalar, MatT::ColsAtCompileTime, MatT::RowsAtCompileTime> singularValuesInv(mat.cols(), mat.rows());
+    singularValuesInv.setZero();
+    for (unsigned int i = 0; i < singularValues.size(); ++i) {
+        if (singularValues(i) > tolerance)
+        {
+            singularValuesInv(i, i) = Scalar{1} / singularValues(i);
+        }
+        else
+        {
+            singularValuesInv(i, i) = Scalar{0};
+        }
+    }
+    return svd.matrixV() * singularValuesInv * svd.matrixU().adjoint();
+}
+
 KinDynMultiArm_KDL::KinDynMultiArm_KDL(const std::string &modelname) : KinDynInterface(modelname)
 {
   this->loadModel(modelname);
@@ -75,6 +98,8 @@ void KinDynMultiArm_KDL::computeStackPart(const sensor_msgs::JointState &in_robo
                                           Eigen::VectorXd &out_cartAcc,
                                           Eigen::MatrixXd &out_jacobian,
                                           Eigen::MatrixXd &out_jacobianDot,
+                                          const Eigen::VectorXd &in_ext_torque,
+                                          Eigen::VectorXd &out_ext_wrench,
                                           const Eigen::VectorXd &ext_coriolisAndGravity,
                                           const Eigen::MatrixXd &ext_inertia,
                                           bool override)
@@ -159,6 +184,16 @@ void KinDynMultiArm_KDL::computeStackPart(const sensor_msgs::JointState &in_robo
   out_jacobianDot.block(index_ts, index_js, 6, _js_dof) = this->Jd.data;
 
   out_cartAcc.segment(index_ts, 6) = this->Jd.data * this->q_qd.qdot.data; // TODO: add out_jacobian_var * in_robotstatus_var.accelerations
+
+  // Calculate external wrenches from external torques
+  if (!in_ext_torque.segment(index_js, _js_dof).isZero())
+  {
+    out_ext_wrench.segment(index_ts, 6) = pseudo_inverse(out_jacobian.transpose()) * in_ext_torque.segment(index_js, _js_dof);
+  }
+  else
+  {
+    out_ext_wrench.segment(index_ts, 6).setZero();
+  }
 }
 
 void KinDynMultiArm_KDL::solve(const sensor_msgs::JointState &in_robotstatus)
@@ -265,7 +300,9 @@ void KinDynMultiArm_KDL::compute(const sensor_msgs::JointState &in_robotstatus,
                                  Eigen::VectorXd &out_cartVel,
                                  Eigen::VectorXd &out_cartAcc,
                                  Eigen::MatrixXd &out_jacobian,
-                                 Eigen::MatrixXd &out_jacobianDot)
+                                 Eigen::MatrixXd &out_jacobianDot,
+                                 const Eigen::VectorXd &in_ext_torque,
+                                 Eigen::VectorXd &out_ext_wrench)
 {
   this->solve(in_robotstatus);
 
@@ -338,6 +375,16 @@ void KinDynMultiArm_KDL::compute(const sensor_msgs::JointState &in_robotstatus,
   out_jacobianDot = this->Jd.data;
 
   out_cartAcc = out_jacobianDot * this->q_qd.qdot.data; // TODO: add out_jacobian_var * in_robotstatus_var.accelerations
+
+  // Calculate external wrenches from external torques
+  if (!in_ext_torque.isZero())
+  {
+    out_ext_wrench = pseudo_inverse(out_jacobian.transpose()) * in_ext_torque;
+  }
+  else
+  {
+    out_ext_wrench.setZero();
+  }
 }
 
 bool KinDynMultiArm_KDL::exists_test(const std::string &name)

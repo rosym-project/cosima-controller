@@ -86,7 +86,9 @@ namespace cosima
         Eigen::VectorXd &out_cartVel,
         Eigen::VectorXd &out_cartAcc,
         Eigen::MatrixXd &out_jacobian,
-        Eigen::MatrixXd &out_jacobianDot);
+        Eigen::MatrixXd &out_jacobianDot,
+        const Eigen::VectorXd &in_ext_torque,
+        Eigen::VectorXd &out_ext_wrench);
 
     void computeStackPart(
         const sensor_msgs::JointState &in_robotstatus,
@@ -103,6 +105,8 @@ namespace cosima
         Eigen::VectorXd &out_cartAcc,
         Eigen::MatrixXd &out_jacobian,
         Eigen::MatrixXd &out_jacobianDot,
+        const Eigen::VectorXd &in_ext_torque,
+        Eigen::VectorXd &out_ext_wrench,
         const Eigen::VectorXd &ext_coriolisAndGravity,
         const Eigen::MatrixXd &ext_inertia,
         bool override = false);

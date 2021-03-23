@@ -34,6 +34,7 @@
 #include <sensor_msgs/JointState.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Wrench.h>
 
 // EIGEN includes
 #include <Eigen/Geometry>
@@ -86,6 +87,9 @@ namespace cosima
     std::vector<std::unique_ptr<RTT::InputPort<Eigen::MatrixXd>>> in_inertia_ports;
     std::vector<Eigen::MatrixXd> in_inertia_vars;
     std::vector<RTT::FlowStatus> in_inertia_flows;
+    std::vector<std::unique_ptr<RTT::InputPort<Eigen::VectorXd>>> in_external_torque_ports;
+    std::vector<Eigen::VectorXd> in_external_torque_vars;
+    std::vector<RTT::FlowStatus> in_external_torque_flows;
 
     // Declare output ports and their datatypes
     RTT::OutputPort<sensor_msgs::JointState> out_robotstatus_port;
@@ -99,12 +103,14 @@ namespace cosima
     RTT::OutputPort<Eigen::VectorXd> out_cartAcc_port;
     RTT::OutputPort<Eigen::MatrixXd> out_jacobian_port;
     RTT::OutputPort<Eigen::MatrixXd> out_jacobianDot_port;
+    RTT::OutputPort<Eigen::MatrixXd> out_external_wrench_port;
 
     // Data flow:
 
     // variables
     Eigen::VectorXd in_external_gravity_var_stacked;
     Eigen::MatrixXd in_inertia_var_stacked;
+    Eigen::VectorXd in_external_torque_var_stacked;
     sensor_msgs::JointState out_robotstatus_var;
     Eigen::MatrixXd out_inertia_var;
     Eigen::MatrixXd out_inertiaInv_var;
@@ -116,6 +122,7 @@ namespace cosima
     Eigen::VectorXd out_cartAcc_var;
     Eigen::MatrixXd out_jacobian_var;
     Eigen::MatrixXd out_jacobianDot_var;
+    Eigen::VectorXd out_external_wrench_var;
 
     // unsigned int DOFsize, DOFsizeActive;
     bool portsArePrepared;
@@ -131,9 +138,11 @@ namespace cosima
 
     std::vector<std::unique_ptr<RTT::OutputPort<geometry_msgs::Pose>>> out_cartPos_ports;
     std::vector<std::unique_ptr<RTT::OutputPort<geometry_msgs::Twist>>> out_cartVel_ports;
+    std::vector<std::unique_ptr<RTT::OutputPort<geometry_msgs::Wrench>>> out_external_wrench_ports;
 
     std::vector<geometry_msgs::Pose> out_cartPos_vars;
     std::vector<geometry_msgs::Twist> out_cartVel_vars;
+    std::vector<geometry_msgs::Wrench> out_external_wrench_vars;
 
   };
 
