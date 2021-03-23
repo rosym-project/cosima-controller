@@ -20,9 +20,13 @@
 #include <trajectory_msgs/MultiDOFJointTrajectoryPoint.h>
 #include <geometry_msgs/Transform.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Wrench.h>
+#include <trajectory_msgs/JointTrajectoryPoint.h>
 
 #include "rtt_stack_cart.hpp"
 #include "rtt_stack_cart_wo_js.hpp"
+
+#include "rtt_cs.hpp"
 
 namespace cosima
 {
@@ -38,58 +42,36 @@ namespace cosima
         void stopHook();
         void cleanupHook();
 
-        void setJointStiffnessE(const Eigen::VectorXd &KP);
-        void setJointDampingE(const Eigen::VectorXd &KD);
+        // void setJointStiffnessE(const Eigen::VectorXd &KP);
+        // void setJointDampingE(const Eigen::VectorXd &KD);
 
-        void setCartStiffnessE(const Eigen::VectorXd &KP);
-        void setCartDampingE(const Eigen::VectorXd &KD);
+        // void setCartStiffnessE(const Eigen::VectorXd &KP);
+        // void setCartDampingE(const Eigen::VectorXd &KD);
 
     private:
-        /*---------------------------------input ports--------------------------------*/
-        // RTT::InputPort<Eigen::VectorXd> cart_imped_high_feedforward_forces_input_port;
-        // RTT::InputPort<Eigen::MatrixXd> cart_imped_high_cartesian_stiffness_input_port;
-        // RTT::InputPort<Eigen::MatrixXd> cart_imped_high_cartesian_damping_input_port;
         RTT::InputPort<trajectory_msgs::MultiDOFJointTrajectoryPoint> in_desiredTaskSpace_port;
-        // RTT::InputPort<Eigen::VectorXd> joint_space_redres_desired_joint_input_port;
-        // RTT::InputPort<Eigen::MatrixXd> joint_space_redres_joint_damping_input_port;
-        // RTT::InputPort<Eigen::MatrixXd> joint_space_redres_joint_stiffness_input_port;
-
-        /*-----------------------------ports' flow states-----------------------------*/
-        // RTT::FlowStatus cart_imped_high_feedforward_forces_flow;
-        // RTT::FlowStatus cart_imped_high_cartesian_stiffness_flow;
-        // RTT::FlowStatus cart_imped_high_cartesian_damping_flow;
         RTT::FlowStatus in_desiredTaskSpace_flow;
-        // RTT::FlowStatus joint_space_redres_desired_joint_flow;
-        // RTT::FlowStatus joint_space_redres_joint_damping_flow;
-        // RTT::FlowStatus joint_space_redres_joint_stiffness_flow;
-
-        /*------------------------------input ports data------------------------------*/
-        // Eigen::VectorXd cart_imped_high_feedforward_forces_input_data;
-        // Eigen::MatrixXd cart_imped_high_cartesian_stiffness_input_data;
-        // Eigen::MatrixXd cart_imped_high_cartesian_damping_input_data;
         trajectory_msgs::MultiDOFJointTrajectoryPoint in_desiredTaskSpace_var;
-        // Eigen::VectorXd joint_space_redres_desired_joint_input_data;
-        // Eigen::MatrixXd joint_space_redres_joint_damping_input_data;
-        // Eigen::MatrixXd joint_space_redres_joint_stiffness_input_data;
 
-        /*--------------------------------output ports--------------------------------*/
-        // RTT::OutputPort<std_msgs::Float64MultiArray> cart_imped_high_feedforward_forces_output_port;
-        // RTT::OutputPort<geometry_msgs::Pose> cart_imped_high_cartesian_pose_output_port;
-        // RTT::OutputPort<std_msgs::Float64MultiArray> joint_space_redres_desired_joint_output_port;
+        RTT::InputPort<trajectory_msgs::JointTrajectoryPoint> in_desiredJointSpace_port;
+        RTT::FlowStatus in_desiredJointSpace_flow;
+        trajectory_msgs::JointTrajectoryPoint in_desiredJointSpace_var;
 
-        /*------------------------------output ports data-----------------------------*/
-        // Eigen::VectorXd cart_imped_high_feedforward_forces_output_data;
-        // Eigen::MatrixXd cart_imped_high_cartesian_pose_output_data;
-        // Eigen::VectorXd joint_space_redres_desired_joint_output_data;
-        // std_msgs::Float64MultiArray cart_imped_high_feedforward_forces_rosout_data;
-        // geometry_msgs::Pose cart_imped_high_cartesian_pose_rosout_data;
-        // std_msgs::Float64MultiArray joint_space_redres_desired_joint_rosout_data;
+        RTT::InputPort<geometry_msgs::Wrench> in_contactWrench_port;
+        RTT::FlowStatus in_contactWrench_flow;
+        geometry_msgs::Wrench in_contactWrench_var;
 
-        /*-------------------------backend solvers and stacks-------------------------*/
-        boost::shared_ptr<qp_problem> iHQP_SoT;
-        // 
-        boost::shared_ptr<qp_problem_cart_wo_js> iHQP_SoT_cart_wo_js;
-        // TODO: This is hard coded. FIXIT!
+        RTT::InputPort<geometry_msgs::Wrench> in_wrench_fdb_port;
+        RTT::FlowStatus in_wrench_fdb_flow;
+        geometry_msgs::Wrench in_wrench_fdb_var;
+
+        Eigen::VectorXd in_wrench_fdb_data;
+
+        bool simulation;
+
+        double rate;
+
+
         XBot::ModelInterface::Ptr model;
         bool model_configured;
         std::string path_to_model_config;
@@ -97,31 +79,28 @@ namespace cosima
         /*------------------------------helper functions------------------------------*/
         double getTime();
         void init_ports();
-        void read_ports();
-        void prepare_monitors();
+        // void prepare_monitors();
         void write_ports();
         bool check_ports_connectivity();
         bool load_config(std::string config_path);
-        void set_sot_references();
-        void update_model();
         double kv;
 
-        void printInfo();
+        // void printInfo();
 
-        void setPosition(double x, double y, double z);
-        void setOrientation(double x, double y, double  z, double w);
-        void setCartStiffness(double KP);
-        void setCartDamping(double KD);
-        void setJointStiffness(double KP);
-        void setJointDamping(double KD);
-        void setFF(double x, double y, double z);
-        void setJntPosture(int idx, double value);
+        // void setPosition(double x, double y, double z);
+        // void setOrientation(double x, double y, double  z, double w);
+        // void setCartStiffness(double KP);
+        // void setCartDamping(double KD);
+        // void setJointStiffness(double KP);
+        // void setJointDamping(double KD);
+        // void setFF(double x, double y, double z);
+        // void setJntPosture(int idx, double value);
 
         Eigen::VectorXd ff_out_data;
-        Eigen::MatrixXd cart_stiff_out_data;
-        Eigen::MatrixXd cart_damp_out_data;
-        Eigen::MatrixXd jnt_stiff_out_data;
-        Eigen::MatrixXd jnt_damp_out_data;
+        // Eigen::MatrixXd cart_stiff_out_data;
+        // Eigen::MatrixXd cart_damp_out_data;
+        // Eigen::MatrixXd jnt_stiff_out_data;
+        // Eigen::MatrixXd jnt_damp_out_data;
         Eigen::VectorXd des_posture_out_data;
 
         /*-------------------output torques and robot configruation-------------------*/
@@ -139,7 +118,29 @@ namespace cosima
         RTT::FlowStatus in_coriolisAndGravity_flow;
         Eigen::VectorXd in_coriolisAndGravity_data;
 
-        int stack_type;
+        // int stack_type;
+
+        void addContact(const std::string &cs, const unsigned int &dir);
+        void addCompliance(const std::string &cs, const unsigned int &dir);
+        void addMSD(const std::string &cs, const Eigen::VectorXd &stiffness, const Eigen::VectorXd &damping);
+        void addMSDdir(const std::string &cs, const unsigned int &dir, const double &stiffness, const double &damping);
+        void addJSMsd(const std::string &cs, const Eigen::VectorXd &stiffness, const Eigen::VectorXd &damping);
+        void addCS(const std::string &cs);
+        void useTransitionWrench(const std::string &cs, const std::string &target, const unsigned int &dir, const bool &greater, const double &value);
+        //
+        std::map<std::string,std::shared_ptr<CS>> model_css;
+        std::shared_ptr<CS> current_cs;
+        std::shared_ptr<CS> old_cs; // TODO
+        //
+        Eigen::VectorXd cur_model_msd_gain_stiffness, old_msd_gain_stiffness;
+        Eigen::VectorXd cur_model_msd_gain_damping, old_msd_gain_damping;
+        Eigen::VectorXd cur_model_js_gain_stiffness, old_js_gain_stiffness;
+        Eigen::VectorXd cur_model_js_gain_damping, old_js_gain_damping;
+        
+
+        double change_in_sec;
+
+
     };
 
   } // namespace controller
