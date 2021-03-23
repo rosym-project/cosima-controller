@@ -314,9 +314,6 @@ void RTTControlStack::init_ports()
 
 
 
-
-
-
     in_desiredTaskSpace_var.velocities.push_back(geometry_msgs::Twist());
     in_desiredTaskSpace_var.accelerations.push_back(geometry_msgs::Twist());
 
