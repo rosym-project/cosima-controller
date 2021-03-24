@@ -32,28 +32,185 @@
 using namespace cosima;
 using namespace coordination;
 
-ContactSituationSwitcher::ContactSituationSwitcher(std::string const &name) : RTT::TaskContext(name)
+ContactSituationSwitcher::ContactSituationSwitcher(std::string const &name) : RTT::TaskContext(name), skill_type(0)
 {
-    // this->addProperty("traj_max_vel", traj_max_vel);
+    converged_th = 0.001;
+    this->addProperty("converged_th", converged_th);
+
+    move_speed_trans = 0.001;
+    this->addProperty("move_speed_trans", move_speed_trans);
+
+    slerp_time_ = 0.0;
+
+    move_speed_orn = 0.001;
+    this->addProperty("move_speed_orn", move_speed_orn);
+    
+    // RTT::OutputPort<bool> port;
+    // this->ports()->addPort("my_port", port);
+    // port.createStream(rtt_roscomm::topic("my_ros_topic"));
+    // rtt_rosservice::ROSService
+
+    this->addOperation("assemble_srv",&ContactSituationSwitcher::assemble_srv,this);
+    this->addOperation("move_srv",&ContactSituationSwitcher::move_srv,this);
+
 }
+
+bool ContactSituationSwitcher::assemble_srv(cosima_msgs::AssembleRequest& req,cosima_msgs::AssembleResponse& resp)
+{
+
+}
+
+bool ContactSituationSwitcher::move_srv(cosima_msgs::MoveRequest& req,cosima_msgs::MoveResponse& resp)
+{
+    _pose_var_trans(0) = req.i_pose.position.x;
+    _pose_var_trans(1) = req.i_pose.position.y;
+    _pose_var_trans(2) = req.i_pose.position.z;
+    //
+    _pose_var_orn.w() = req.i_pose.orientation.w;
+    _pose_var_orn.x() = req.i_pose.orientation.x;
+    _pose_var_orn.y() = req.i_pose.orientation.y;
+    _pose_var_orn.z() = req.i_pose.orientation.z;
+    //
+    //
+    if (skill_type == 0)
+    {
+        // IDLE -> Do It
+        PRELOG(Error) << "Received command " << _pose_var_trans << " in IDLE" << RTT::endlog();
+        new_move_command = true;
+    }
+    else if (skill_type == 1)
+    {
+        // MOVE -> Do It
+        PRELOG(Error) << "Received command " << _pose_var_trans << " in MOVE" << RTT::endlog();
+        new_move_command = true;
+    }
+    else if (skill_type == 2)
+    {
+        // ASSEMBLY -> Do Nothing
+    }
+    return true;
+}
+
 
 double ContactSituationSwitcher::getOrocosTime()
 {
     return 1E-9 * RTT::os::TimeService::ticks2nsecs(RTT::os::TimeService::Instance()->getTicks());
 }
 
-void ContactSituationSwitcher::addWrenchMonitor(std::string const &name)
-{
-    map_monitors_wrench[name] = std::shared_ptr<MonitorWrench>(new MonitorWrench(name, this));
-}
+// void ContactSituationSwitcher::addWrenchMonitor(std::string const &name)
+// {
+//     map_monitors_wrench[name] = std::shared_ptr<MonitorWrench>(new MonitorWrench(name, this));
+// }
 
-void ContactSituationSwitcher::setWrenchMonitorBounds(std::string const &name, unsigned int const &dimension, double lower, double upper)
-{
-    map_monitors_wrench[name]->activateBounds(dimension, lower, upper);
-}
+// void ContactSituationSwitcher::setWrenchMonitorBounds(std::string const &name, unsigned int const &dimension, double lower, double upper)
+// {
+//     map_monitors_wrench[name]->activateBounds(dimension, lower, upper);
+// }
 
 bool ContactSituationSwitcher::configureHook()
 {
+    // Params
+    new_move_command = false;
+    new_assemble_command = false;
+    skill_type = 0;
+
+
+    // Ports
+
+    // InputPort: current cart pose
+    in_pose_var = geometry_msgs::Pose();
+    in_pose_var.position.x = 0.0;
+    in_pose_var.position.y = 0.0;
+    in_pose_var.position.z = 0.0;
+    //
+    in_pose_var.orientation.w = 1.0;
+    in_pose_var.orientation.x = 0.0;
+    in_pose_var.orientation.y = 0.0;
+    in_pose_var.orientation.z = 0.0;
+    //
+    in_pose_port.setName("in_pose_port");
+    ports()->addPort(in_pose_port);
+    in_pose_flow = RTT::NoData;
+
+    // InputPort: current cart wrench
+    in_wrench_var = geometry_msgs::Wrench();
+    in_wrench_var.force.x = 0.0;
+    in_wrench_var.force.y = 0.0;
+    in_wrench_var.force.z = 0.0;
+    //
+    in_wrench_var.torque.x = 0.0;
+    in_wrench_var.torque.y = 0.0;
+    in_wrench_var.torque.z = 0.0;
+    //
+    in_wrench_port.setName("in_wrench_port");
+    ports()->addPort(in_wrench_port);
+    in_wrench_flow = RTT::NoData;
+
+    // OutputPort: converged
+    out_converged_var = std_msgs::Bool();
+    out_converged_var.data = true; // converged
+    out_converged_port.setName("out_converged_port");
+    out_converged_port.setDataSample(out_converged_var);
+    ports()->addPort(out_converged_port);
+
+    // OutputPort: command gripper
+    out_gripper_var = std_msgs::Bool();
+    out_gripper_var.data = true; // open
+    out_gripper_port.setName("out_gripper_port");
+    out_gripper_port.setDataSample(out_gripper_var);
+    ports()->addPort(out_gripper_port);
+
+    // OutputPort: command pose of arm
+    out_desiredTaskSpace_var = trajectory_msgs::MultiDOFJointTrajectoryPoint();
+    out_desiredTaskSpace_var.transforms.push_back(geometry_msgs::Transform());
+    //
+    out_desiredTaskSpace_var.transforms[0].translation.x = 0.000158222;
+    out_desiredTaskSpace_var.transforms[0].translation.y = -0.675439;
+    out_desiredTaskSpace_var.transforms[0].translation.z = 0.285982;
+    out_desiredTaskSpace_var.transforms[0].rotation.w = 0.0150682;
+    out_desiredTaskSpace_var.transforms[0].rotation.x = 0.707013;
+    out_desiredTaskSpace_var.transforms[0].rotation.y = -0.706876;
+    out_desiredTaskSpace_var.transforms[0].rotation.z = 0.0152298;
+    //
+    // out_desiredTaskSpace_var.transforms[0].translation.x = 0.0;
+    // out_desiredTaskSpace_var.transforms[0].translation.y = 0.0;
+    // out_desiredTaskSpace_var.transforms[0].translation.z = 0.0;
+    // out_desiredTaskSpace_var.transforms[0].rotation.w = 1.0;
+    // out_desiredTaskSpace_var.transforms[0].rotation.x = 0.0;
+    // out_desiredTaskSpace_var.transforms[0].rotation.y = 0.0;
+    // out_desiredTaskSpace_var.transforms[0].rotation.z = 0.0;
+    //
+    out_desiredTaskSpace_var.velocities.push_back(geometry_msgs::Twist());
+    out_desiredTaskSpace_var.accelerations.push_back(geometry_msgs::Twist());
+    //
+    out_desiredTaskSpace_port.setName("out_desiredTaskSpace_port");
+    out_desiredTaskSpace_port.setDataSample(out_desiredTaskSpace_var);
+    ports()->addPort(out_desiredTaskSpace_port);
+
+    //
+    _pose_var_trans = Eigen::Vector3d::Zero();
+    _pose_var_orn = Eigen::Quaterniond::Identity();
+
+    out_trans_ = Eigen::Vector3d::Zero();
+    des_trans_ = Eigen::Vector3d::Zero();
+    cur_trans_ = Eigen::Vector3d::Zero();
+
+    out_orn_ = Eigen::Quaterniond::Identity();
+    des_orn_ = Eigen::Quaterniond::Identity();
+    cur_orn_ = Eigen::Quaterniond::Identity();
+    
+
+    // ROS services
+    boost::shared_ptr<rtt_rosservice::ROSService> rosservice = this->getProvider<rtt_rosservice::ROSService>("rosservice");
+    if(rosservice)
+    {
+        rosservice->connect("assemble_srv",this->getName()+"/assemble_srv","cosima_msgs/Assemble");
+        rosservice->connect("move_srv",this->getName()+"/move_srv","cosima_msgs/Move");
+    }
+    else
+    {
+        PRELOG(Error) << "ROSService not available" << RTT::endlog();
+    }
     return true;
 }
 
@@ -65,10 +222,158 @@ bool ContactSituationSwitcher::startHook()
 
 void ContactSituationSwitcher::updateHook()
 {
-    for (auto const& x : map_monitors_wrench)
+    // for (auto const& x : map_monitors_wrench)
+    // {
+    //     x.second->eval();
+    // }
+
+    in_pose_flow = in_pose_port.read(in_pose_var);
+    if (in_pose_flow == RTT::NoData)
     {
-        x.second->eval();
+        return;
     }
+    else
+    {
+        cur_trans_(0) = in_pose_var.position.x;
+        cur_trans_(1) = in_pose_var.position.y;
+        cur_trans_(2) = in_pose_var.position.z;
+        //
+        cur_orn_.w() = in_pose_var.orientation.w;
+        cur_orn_.x() = in_pose_var.orientation.x;
+        cur_orn_.y() = in_pose_var.orientation.y;
+        cur_orn_.z() = in_pose_var.orientation.z;
+    }
+
+    if (skill_type == 0) // IDLE
+    {
+        if (new_assemble_command)
+        {
+            skill_type = 2;
+        }
+
+        if (new_move_command)
+        {
+            skill_type = 1;
+        }
+    }
+
+    ////////////////////////////////////////
+    
+    if (skill_type == 1) // MOVE
+    {
+        if (new_move_command)
+        {
+            // TODO
+            new_move_command = false;
+            skill_type = 1;
+            out_converged_var.data = false;
+            out_converged_port.write(out_converged_var);
+
+            des_trans_(0) = _pose_var_trans(0);
+            des_trans_(1) = _pose_var_trans(1);
+            des_trans_(2) = _pose_var_trans(2);
+
+            des_orn_.w() = _pose_var_orn.w();
+            des_orn_.x() = _pose_var_orn.x();
+            des_orn_.y() = _pose_var_orn.y();
+            des_orn_.z() = _pose_var_orn.z();
+
+            slerp_time_ = 0.0;
+
+            PRELOG(Error) << "Received:\n" << des_trans_ << RTT::endlog();
+
+            // Find the difference quaternion: qd = inverse(q1)*q2
+            Eigen::Quaterniond qd = cur_orn_.inverse()*des_orn_;
+            // Then find the angle between q1 and q2:
+            double angle = 2.0 * atan2(qd.vec().norm(), qd.w()); // NOTE: signed
+
+            PRELOG(Error) << "des_orn_:\n" << " w = " << des_orn_.w() << "\n x = " << des_orn_.x() << "\n y = " << des_orn_.y() << "\n z = " << des_orn_.z() << RTT::endlog();
+
+            PRELOG(Error) << "cur_orn_:\n" << " w = " << cur_orn_.w() << "\n x = " << cur_orn_.x() << "\n y = " << cur_orn_.y() << "\n z = " << cur_orn_.z() << RTT::endlog();
+
+            if (angle > 3.14159)
+            {
+                angle = 3.14159 - angle;
+            }
+
+            PRELOG(Error) << "Dist (rad) " << angle << RTT::endlog();
+            PRELOG(Error) << "Dist (deg) " << angle * 180.0 / M_PI << RTT::endlog();
+
+            move_speed_orn = 0.001 / fabs(angle * 180.0 / M_PI);
+            PRELOG(Error) << "Speed " << move_speed_orn << RTT::endlog();
+
+            
+
+            des_orn_.normalize();
+            cur_orn_.normalize();
+
+            out_orn_ = cur_orn_;
+        }
+
+        // 1) Calculate Error and Normalized Direction
+        out_trans_ = cur_trans_ + (des_trans_ - cur_trans_).normalized() * move_speed_trans;
+        // out_trans_ = cur_trans_ + (des_trans_ - cur_trans_) * move_speed_trans;
+
+        // 2) Slerp
+        slerp_time_ += move_speed_orn;
+        if (slerp_time_ >= 1.0)
+        {
+            slerp_time_ = 1.0;
+        }
+        out_orn_ = cur_orn_.slerp(slerp_time_, des_orn_);
+        out_orn_.normalize();
+
+        // out_orn_ = des_orn_;
+        // out_orn_.normalize();
+
+        
+
+
+        if ((des_trans_ - out_trans_).norm() <= converged_th)
+        {
+            out_desiredTaskSpace_var.transforms[0].translation.x = des_trans_(0);
+            out_desiredTaskSpace_var.transforms[0].translation.y = des_trans_(1);
+            out_desiredTaskSpace_var.transforms[0].translation.z = des_trans_(2);
+            out_desiredTaskSpace_var.transforms[0].rotation.w = out_orn_.w();
+            out_desiredTaskSpace_var.transforms[0].rotation.x = out_orn_.x();
+            out_desiredTaskSpace_var.transforms[0].rotation.y = out_orn_.y();
+            out_desiredTaskSpace_var.transforms[0].rotation.z = out_orn_.z();
+
+            if (slerp_time_ >= 1.0)
+            {
+                out_desiredTaskSpace_var.transforms[0].rotation.w = des_orn_.w();
+                out_desiredTaskSpace_var.transforms[0].rotation.x = des_orn_.x();
+                out_desiredTaskSpace_var.transforms[0].rotation.y = des_orn_.y();
+                out_desiredTaskSpace_var.transforms[0].rotation.z = des_orn_.z();
+                PRELOG(Error) << "Converged!" << RTT::endlog();
+                // publish converged
+                out_converged_var.data = true;
+                out_converged_port.write(out_converged_var);
+
+                skill_type = 0;
+            }
+        }
+        else
+        {
+            out_desiredTaskSpace_var.transforms[0].translation.x = out_trans_(0);
+            out_desiredTaskSpace_var.transforms[0].translation.y = out_trans_(1);
+            out_desiredTaskSpace_var.transforms[0].translation.z = out_trans_(2);
+            out_desiredTaskSpace_var.transforms[0].rotation.w = out_orn_.w();
+            out_desiredTaskSpace_var.transforms[0].rotation.x = out_orn_.x();
+            out_desiredTaskSpace_var.transforms[0].rotation.y = out_orn_.y();
+            out_desiredTaskSpace_var.transforms[0].rotation.z = out_orn_.z();
+        }
+
+        // publish command
+        out_desiredTaskSpace_port.write(out_desiredTaskSpace_var);
+    }
+    else if (skill_type == 2) // ASSEMBLY
+    {
+        
+        
+    }
+
+    
 }
 
 void ContactSituationSwitcher::stopHook()

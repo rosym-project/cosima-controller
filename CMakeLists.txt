@@ -42,6 +42,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   trajectory_msgs
   kdl_parser
+  cosima_msgs
 )
 
 if (NOT OROCOS-RTT_FOUND)
@@ -235,7 +236,7 @@ orocos_component(${CMAKE_PROJECT_NAME}
   # ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_bezier_trajectory.cpp
   ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_linear_trajectory.cpp
 
-  # ${PROJECT_SOURCE_DIR}/src/coordination/rtt_contact_situation_switcher.cpp
+  ${PROJECT_SOURCE_DIR}/src/coordination/rtt_contact_situation_switcher.cpp
 
 
 ) # ...you may add multiple source files
@@ -273,7 +274,7 @@ orocos_component(${CMAKE_PROJECT_NAME}
   # ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_bezier_trajectory.cpp
   ${PROJECT_SOURCE_DIR}/src/trajectories/rtt_linear_trajectory.cpp
 
-  # ${PROJECT_SOURCE_DIR}/src/coordination/rtt_contact_situation_switcher.cpp
+  ${PROJECT_SOURCE_DIR}/src/coordination/rtt_contact_situation_switcher.cpp
   ${PROJECT_SOURCE_DIR}/src/controller/rtt_control_stack.cpp
 
 

@@ -307,10 +307,14 @@ void RTTControlStack::init_ports()
     in_desiredTaskSpace_var.transforms[0].translation.x = 0.000158222;
     in_desiredTaskSpace_var.transforms[0].translation.y = -0.675439 ;
     in_desiredTaskSpace_var.transforms[0].translation.z = 0.285982  ;
-    in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0150682 ;
-    in_desiredTaskSpace_var.transforms[0].rotation.x = 0.707013  ;
-    in_desiredTaskSpace_var.transforms[0].rotation.y = -0.706876  ;
-    in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0152298 ;
+    // in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0150682 ;
+    // in_desiredTaskSpace_var.transforms[0].rotation.x = 0.707013  ;
+    // in_desiredTaskSpace_var.transforms[0].rotation.y = -0.706876  ;
+    // in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0152298 ;
+    in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0;
+    in_desiredTaskSpace_var.transforms[0].rotation.x = 0.0;
+    in_desiredTaskSpace_var.transforms[0].rotation.y = 1.0;
+    in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0;
 
 
 

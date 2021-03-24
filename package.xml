@@ -38,6 +38,10 @@
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
 
+  <build_depend>cosima_msgs</build_depend>
+  <build_export_depend>cosima_msgs</build_export_depend>
+  <exec_depend>cosima_msgs</exec_depend>
+
 
   <!-- Build deps are queried automatically with orocos_use_package() -->
   <!-- <build_depend>rtt_ros</build_depend> -->
