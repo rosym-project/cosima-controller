@@ -115,6 +115,7 @@ namespace cosima
         void setJointStiffness(double KP);
         void setJointDamping(double KD);
         void setFF(double x, double y, double z);
+        void setFFRot(double x, double y, double z);
         void setJntPosture(int idx, double value);
 
         Eigen::VectorXd ff_out_data;

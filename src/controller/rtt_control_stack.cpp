@@ -44,6 +44,7 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
 
     ff_out_data = Eigen::VectorXd::Zero(6);
     addOperation("setFF", &RTTControlStack::setFF, this, RTT::ClientThread);
+    addOperation("setFFRot", &RTTControlStack::setFFRot, this, RTT::ClientThread);
     //
     cart_stiff_out_data  = Eigen::MatrixXd::Identity(6, 6) * 100;
     addOperation("setCartStiffness", &RTTControlStack::setCartStiffness, this, RTT::ClientThread);
@@ -270,6 +271,13 @@ void RTTControlStack::setFF(double x, double y, double z)
     ff_out_data(0) = x;
     ff_out_data(1) = y;
     ff_out_data(2) = z;
+}
+
+void RTTControlStack::setFFRot(double x, double y, double z)
+{
+    ff_out_data(3) = x;
+    ff_out_data(4) = y;
+    ff_out_data(5) = z;
 }
 
 void RTTControlStack::cleanupHook()
