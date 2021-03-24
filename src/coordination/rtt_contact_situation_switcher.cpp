@@ -37,13 +37,17 @@ ContactSituationSwitcher::ContactSituationSwitcher(std::string const &name) : RT
     converged_th = 0.001;
     this->addProperty("converged_th", converged_th);
 
-    move_speed_trans = 0.001;
-    this->addProperty("move_speed_trans", move_speed_trans);
+    move_speed_trans = 0.0001;
+    // this->addProperty("move_speed_trans", move_speed_trans);
 
     slerp_time_ = 0.0;
+    move_time_ = 0.0;
 
-    move_speed_orn = 0.001;
-    this->addProperty("move_speed_orn", move_speed_orn);
+    move_speed_rot_max = 5;
+    this->addProperty("move_speed_rot_max", move_speed_rot_max);
+
+    move_speed_trans_max = 15.0;
+    this->addProperty("move_speed_trans_max", move_speed_trans_max);
     
     // RTT::OutputPort<bool> port;
     // this->ports()->addPort("my_port", port);
@@ -62,32 +66,49 @@ bool ContactSituationSwitcher::assemble_srv(cosima_msgs::AssembleRequest& req,co
 
 bool ContactSituationSwitcher::move_srv(cosima_msgs::MoveRequest& req,cosima_msgs::MoveResponse& resp)
 {
-    _pose_var_trans(0) = req.i_pose.position.x;
-    _pose_var_trans(1) = req.i_pose.position.y;
-    _pose_var_trans(2) = req.i_pose.position.z;
-    //
-    _pose_var_orn.w() = req.i_pose.orientation.w;
-    _pose_var_orn.x() = req.i_pose.orientation.x;
-    _pose_var_orn.y() = req.i_pose.orientation.y;
-    _pose_var_orn.z() = req.i_pose.orientation.z;
+    
     //
     //
     if (skill_type == 0)
     {
+        _pose_var_trans(0) = req.i_pose.position.x;
+        _pose_var_trans(1) = req.i_pose.position.y;
+        _pose_var_trans(2) = req.i_pose.position.z;
+        //
+        _pose_var_orn.w() = req.i_pose.orientation.w;
+        _pose_var_orn.x() = req.i_pose.orientation.x;
+        _pose_var_orn.y() = req.i_pose.orientation.y;
+        _pose_var_orn.z() = req.i_pose.orientation.z;
+
+        move_speed_rot_max = req.i_max_rot_sec;
+        move_speed_trans_max = req.i_max_trans_sec;
+
         // IDLE -> Do It
-        PRELOG(Error) << "Received command " << _pose_var_trans << " in IDLE" << RTT::endlog();
+        PRELOG(Error) << "Received command " << _pose_var_trans << "with rot = " << move_speed_rot_max << " and trans = " << move_speed_trans_max << " in IDLE" << RTT::endlog();
         new_move_command = true;
+        // Wait until main() sends data
+        std::unique_lock<std::mutex> lck(m);
+        cv.wait(lck);
     }
-    else if (skill_type == 1)
+    else
     {
-        // MOVE -> Do It
-        PRELOG(Error) << "Received command " << _pose_var_trans << " in MOVE" << RTT::endlog();
-        new_move_command = true;
+        PRELOG(Error) << "Error: Already processing!" << RTT::endlog();
+        return false;
     }
-    else if (skill_type == 2)
-    {
-        // ASSEMBLY -> Do Nothing
-    }
+    // else if (skill_type == 1)
+    // {
+    //     // MOVE -> Do It
+    //     PRELOG(Error) << "Received command " << _pose_var_trans << " in MOVE" << RTT::endlog();
+    //     new_move_command = true;
+    //     // Wait until main() sends data
+    //     std::unique_lock<std::mutex> lck(m);
+    //     cv.wait(lck);
+    // }
+    // else if (skill_type == 2)
+    // {
+    //     // ASSEMBLY -> Do Nothing
+    // }
+
     return true;
 }
 
@@ -232,17 +253,6 @@ void ContactSituationSwitcher::updateHook()
     {
         return;
     }
-    else
-    {
-        cur_trans_(0) = in_pose_var.position.x;
-        cur_trans_(1) = in_pose_var.position.y;
-        cur_trans_(2) = in_pose_var.position.z;
-        //
-        cur_orn_.w() = in_pose_var.orientation.w;
-        cur_orn_.x() = in_pose_var.orientation.x;
-        cur_orn_.y() = in_pose_var.orientation.y;
-        cur_orn_.z() = in_pose_var.orientation.z;
-    }
 
     if (skill_type == 0) // IDLE
     {
@@ -279,6 +289,7 @@ void ContactSituationSwitcher::updateHook()
             des_orn_.z() = _pose_var_orn.z();
 
             slerp_time_ = 0.0;
+            move_time_ = 0.0;
 
             PRELOG(Error) << "Received:\n" << des_trans_ << RTT::endlog();
 
@@ -287,7 +298,7 @@ void ContactSituationSwitcher::updateHook()
             // Then find the angle between q1 and q2:
             double angle = 2.0 * atan2(qd.vec().norm(), qd.w()); // NOTE: signed
 
-            PRELOG(Error) << "des_orn_:\n" << " w = " << des_orn_.w() << "\n x = " << des_orn_.x() << "\n y = " << des_orn_.y() << "\n z = " << des_orn_.z() << RTT::endlog();
+            // PRELOG(Error) << "des_orn_:\n" << " w = " << des_orn_.w() << "\n x = " << des_orn_.x() << "\n y = " << des_orn_.y() << "\n z = " << des_orn_.z() << RTT::endlog();
 
             PRELOG(Error) << "cur_orn_:\n" << " w = " << cur_orn_.w() << "\n x = " << cur_orn_.x() << "\n y = " << cur_orn_.y() << "\n z = " << cur_orn_.z() << RTT::endlog();
 
@@ -296,12 +307,28 @@ void ContactSituationSwitcher::updateHook()
                 angle = 3.14159 - angle;
             }
 
-            PRELOG(Error) << "Dist (rad) " << angle << RTT::endlog();
+            // PRELOG(Error) << "Dist (rad) " << angle << RTT::endlog();
             PRELOG(Error) << "Dist (deg) " << angle * 180.0 / M_PI << RTT::endlog();
 
-            move_speed_orn = 0.001 / fabs(angle * 180.0 / M_PI);
-            PRELOG(Error) << "Speed " << move_speed_orn << RTT::endlog();
+            // move_speed_orn = 0.001 / fabs(angle * 180.0 / M_PI);
+            // 180 grad can be rot in 5 sec
+            move_speed_orn = 180.0/move_speed_rot_max*0.001/fabs(angle * 180.0 / M_PI);
+ 
+            // PRELOG(Error) << "Speed ROT " << move_speed_orn << RTT::endlog();
 
+
+            cur_trans_(0) = in_pose_var.position.x;
+            cur_trans_(1) = in_pose_var.position.y;
+            cur_trans_(2) = in_pose_var.position.z;
+            //
+            cur_orn_.w() = in_pose_var.orientation.w;
+            cur_orn_.x() = in_pose_var.orientation.x;
+            cur_orn_.y() = in_pose_var.orientation.y;
+            cur_orn_.z() = in_pose_var.orientation.z;
+
+
+            move_speed_trans = 1.0/move_speed_trans_max*0.001/(des_trans_ - cur_trans_).norm();
+            // PRELOG(Error) << "Speed TRANS " << move_speed_trans << RTT::endlog();
             
 
             des_orn_.normalize();
@@ -311,8 +338,13 @@ void ContactSituationSwitcher::updateHook()
         }
 
         // 1) Calculate Error and Normalized Direction
-        out_trans_ = cur_trans_ + (des_trans_ - cur_trans_).normalized() * move_speed_trans;
-        // out_trans_ = cur_trans_ + (des_trans_ - cur_trans_) * move_speed_trans;
+        // out_trans_ = cur_trans_ + (des_trans_ - cur_trans_).normalized() * move_speed_trans;
+        move_time_ += move_speed_trans;
+        if (move_time_ >= 1.0)
+        {
+            move_time_ = 1.0;
+        }
+        out_trans_ = cur_trans_ + (des_trans_ - cur_trans_) * move_time_;
 
         // 2) Slerp
         slerp_time_ += move_speed_orn;
@@ -326,10 +358,11 @@ void ContactSituationSwitcher::updateHook()
         // out_orn_ = des_orn_;
         // out_orn_.normalize();
 
-        
+        // PRELOG(Error) << "move_time_ " << move_time_ << RTT::endlog();
+        // PRELOG(Error) << "slerp_time_ " << slerp_time_ << RTT::endlog();
 
-
-        if ((des_trans_ - out_trans_).norm() <= converged_th)
+        // if ((des_trans_ - out_trans_).norm() <= converged_th)
+        if (move_time_ >= 1.0)
         {
             out_desiredTaskSpace_var.transforms[0].translation.x = des_trans_(0);
             out_desiredTaskSpace_var.transforms[0].translation.y = des_trans_(1);
@@ -346,11 +379,17 @@ void ContactSituationSwitcher::updateHook()
                 out_desiredTaskSpace_var.transforms[0].rotation.y = des_orn_.y();
                 out_desiredTaskSpace_var.transforms[0].rotation.z = des_orn_.z();
                 PRELOG(Error) << "Converged!" << RTT::endlog();
+
+                PRELOG(Error) << "cur_orn_: CONV \n" << " w = " << cur_orn_.w() << "\n x = " << cur_orn_.x() << "\n y = " << cur_orn_.y() << "\n z = " << cur_orn_.z() << RTT::endlog();
+                cur_orn_ = des_orn_;
+
                 // publish converged
                 out_converged_var.data = true;
                 out_converged_port.write(out_converged_var);
 
                 skill_type = 0;
+
+                cv.notify_one();
             }
         }
         else

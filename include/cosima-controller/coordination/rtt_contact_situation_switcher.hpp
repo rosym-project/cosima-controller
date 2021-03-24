@@ -50,6 +50,10 @@
 
 #include <std_msgs/Bool.h>
 
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
 namespace cosima
 {
 
@@ -141,6 +145,17 @@ namespace cosima
       double move_speed_trans;
 
       double slerp_time_, move_speed_orn;
+
+      double move_time_;
+
+      double move_speed_rot_max;
+
+      double move_speed_trans_max;
+
+      //
+      std::mutex m;
+      std::condition_variable cv;
+      
 
     };
 

@@ -105,18 +105,18 @@ var eigen_vector css = eigen_vector(6)
 css[0]=1600.0
 css[1]=1600.0
 css[2]=1600.0
-css[3]=200.0
-css[4]=200.0
-css[5]=200.0
+css[3]=500.0
+css[4]=500.0
+css[5]=500.0
 sot.setCartStiffnessE(css)
 # Cart Damping
 var eigen_vector csd = eigen_vector(6)
 csd[0]=60.0
 csd[1]=60.0
 csd[2]=60.0
-csd[3]=1.0
-csd[4]=1.0
-csd[5]=1.0
+csd[3]=2.0
+csd[4]=2.0
+csd[5]=2.0
 sot.setCartDampingE(csd)
 
 # Joint Stiffness
