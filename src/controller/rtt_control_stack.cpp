@@ -5,9 +5,24 @@
 using namespace cosima;
 using namespace controller;
 
-RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(name), stack_type(0)
+RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(name)
 {
     model_configured = false;
+
+    finished_update_gains = true;
+    gains_update_duration = 4.0;
+    gains_update_time = 0.0;
+    triggered_update_gains = false;
+    command_gains_update_duration = gains_update_duration;
+    addProperty("gains_update_duration", gains_update_duration);
+    //
+    finished_update_force = true;
+    force_update_duration = 4.0;
+    forces_update_time = 0.0;
+    triggered_update_force = false;
+    command_force_update_duration = force_update_duration;
+    addProperty("force_update_duration", force_update_duration);
+
     // TODO: make the following automatic rather than hard-coded
     out_torques_data.setZero(7);
     q.setZero(7);
@@ -33,8 +48,6 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
     kv = 0.0;
     addProperty("gravCompDamp", kv);
 
-    addProperty("stack_type", stack_type);
-
     init_ports();
 
     // addProperty("model_config_path", path_to_model_config);
@@ -43,10 +56,23 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
     // TODO: initilalize robot model for xbot
 
     ff_out_data = Eigen::VectorXd::Zero(6);
+    t_ff_out_data = Eigen::VectorXd::Zero(6);
+    s_ff_out_data = Eigen::VectorXd::Zero(6);
+    e_ff_out_data = Eigen::VectorXd::Zero(6);
     addOperation("setFF", &RTTControlStack::setFF, this, RTT::ClientThread);
     addOperation("setFFRot", &RTTControlStack::setFFRot, this, RTT::ClientThread);
     //
-    cart_stiff_out_data  = Eigen::MatrixXd::Identity(6, 6) * 100;
+
+    s_cart_stiff_out_data = Eigen::MatrixXd::Identity(6, 6) * 100;
+    e_cart_stiff_out_data = Eigen::MatrixXd::Zero(6, 6);
+    t_cart_stiff_out_data = Eigen::MatrixXd::Identity(6, 6) * 100;
+
+    s_cart_damp_out_data = Eigen::MatrixXd::Identity(6, 6) * 1;
+    e_cart_damp_out_data = Eigen::MatrixXd::Zero(6, 6);
+    t_cart_damp_out_data = Eigen::MatrixXd::Identity(6, 6) * 1;
+
+
+    cart_stiff_out_data = Eigen::MatrixXd::Identity(6, 6) * 100;
     addOperation("setCartStiffness", &RTTControlStack::setCartStiffness, this, RTT::ClientThread);
     cart_damp_out_data   = Eigen::MatrixXd::Identity(6, 6) * 1;
     addOperation("setCartDamping", &RTTControlStack::setCartDamping, this, RTT::ClientThread);
@@ -59,10 +85,15 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
     des_posture_out_data = Eigen::VectorXd::Zero(7);
     addOperation("setJntPosture", &RTTControlStack::setJntPosture, this, RTT::ClientThread);
 
+    // Deprecated
     addOperation("setJointStiffnessE", &RTTControlStack::setJointStiffnessE, this, RTT::ClientThread);
     addOperation("setJointDampingE", &RTTControlStack::setJointDampingE, this, RTT::ClientThread);
     addOperation("setCartStiffnessE", &RTTControlStack::setCartStiffnessE, this, RTT::ClientThread);
     addOperation("setCartDampingE", &RTTControlStack::setCartDampingE, this, RTT::ClientThread);
+
+    // Use this instead!
+    addOperation("setMassSpringDamper", &RTTControlStack::setMassSpringDamper, this, RTT::ClientThread);
+    addOperation("setContactConstraintForce", &RTTControlStack::setContactConstraintForce, this, RTT::ClientThread);
 }
 
 bool RTTControlStack::configureHook()
@@ -101,7 +132,6 @@ bool RTTControlStack::configureHook()
         this->model->setJointPosition(q);
         this->model->update();
         iHQP_SoT.reset(new qp_problem(model, q));
-        iHQP_SoT_cart_wo_js.reset(new qp_problem_cart_wo_js(model, q));
         return true;
     } else {
         RTT::log(RTT::Error) <<"Some ports are not connected or the model is not configured."<<RTT::endlog();
@@ -111,20 +141,9 @@ bool RTTControlStack::configureHook()
 
 bool RTTControlStack::startHook()
 {
-    
-	// cart_imped_high_feedforward_forces_output_port.createStream(rtt_roscomm::topic("/cart_imped_high/feedforward_forces"));
-	// RTT::log(RTT::Info) <<"Created stream forcart_imped_high_feedforward_forces over the topic: /cart_imped_high/feedforward_forces..."<<RTT::endlog();
-
-    
-	// cart_imped_high_cartesian_pose_output_port.createStream(rtt_roscomm::topic("/cart_imped_high/cartesian_pose"));
-	// RTT::log(RTT::Info) <<"Created stream forcart_imped_high_cartesian_pose over the topic: /cart_imped_high/cartesian_pose..."<<RTT::endlog();
-
-    
-	// joint_space_redres_desired_joint_output_port.createStream(rtt_roscomm::topic("/joint_space_redres/desired_joint"));
-	// RTT::log(RTT::Info) <<"Created stream forjoint_space_redres_desired_joint over the topic: /joint_space_redres/desired_joint..."<<RTT::endlog();
     first_no_command = true;
 
-    RTT::log(RTT::Info) <<"Staring..."<<RTT::endlog();
+    RTT::log(RTT::Info) <<"Starting..."<<RTT::endlog();
     return true;
 }
 
@@ -139,7 +158,8 @@ void RTTControlStack::updateHook()
 
     in_coriolisAndGravity_port.read(in_coriolisAndGravity_data);
 
-    for(int i=0; i<7; ++i){
+    for (unsigned int i = 0; i < 7; i++)
+    {
         q[i] = in_robotstatus_data.position[i];
         qd[i] = in_robotstatus_data.velocity[i];
         tau[i] = in_robotstatus_data.effort[i];
@@ -151,22 +171,23 @@ void RTTControlStack::updateHook()
     this->model->setJointVelocity(qd);
     this->model->update();
 
-    //
+    // Handle external pose command
     Eigen::MatrixXd pose_out_data = Eigen::MatrixXd::Identity(4,4);
     Eigen::Quaterniond rotation;
 
     if (first_no_command && in_desiredTaskSpace_flow == RTT::NoData)
     {
+        // If no command received yet and also its the first time, feed the current pose back from the internal model.
         first_no_command = false;
-        Eigen::MatrixXd tmp = Eigen::MatrixXd::Zero(4,4);
-        iHQP_SoT->cart_imped_high->getActualPose(tmp);
+        Eigen::Affine3d affine_tmp;
+        this->model->getPose(iHQP_SoT->cart_imped_high->getDistalLink(),affine_tmp);
         
-        in_desiredTaskSpace_var.transforms[0].translation.x = (tmp.block<3,1>(0,3))(0);
-        in_desiredTaskSpace_var.transforms[0].translation.y = (tmp.block<3,1>(0,3))(1);
-        in_desiredTaskSpace_var.transforms[0].translation.z = (tmp.block<3,1>(0,3))(2);
+        in_desiredTaskSpace_var.transforms[0].translation.x = (affine_tmp.matrix().block<3,1>(0,3))(0);
+        in_desiredTaskSpace_var.transforms[0].translation.y = (affine_tmp.matrix().block<3,1>(0,3))(1);
+        in_desiredTaskSpace_var.transforms[0].translation.z = (affine_tmp.matrix().block<3,1>(0,3))(2);
         // pose_out_data.block<3,1>(0,3) = tmp.block<3,1>(0,3);
 
-        rotation = tmp.block<3,3>(0,0);
+        rotation = affine_tmp.matrix().block<3,3>(0,0);
         in_desiredTaskSpace_var.transforms[0].rotation.w = rotation.w();
         in_desiredTaskSpace_var.transforms[0].rotation.x = rotation.x();
         in_desiredTaskSpace_var.transforms[0].rotation.y = rotation.y();
@@ -190,32 +211,94 @@ void RTTControlStack::updateHook()
     rotation.w() = in_desiredTaskSpace_var.transforms[0].rotation.w;
     pose_out_data.block<3,3>(0,0) = rotation.toRotationMatrix();
 
+    // Update target gains
+    if (triggered_update_gains)
+    {
+        triggered_update_gains = false;
+        s_cart_stiff_out_data = cart_stiff_out_data;
+        s_cart_damp_out_data = cart_damp_out_data;
+        gains_update_duration = command_gains_update_duration;
+
+        e_cart_stiff_out_data = t_cart_stiff_out_data - s_cart_stiff_out_data;
+        e_cart_damp_out_data = t_cart_damp_out_data - s_cart_damp_out_data;
+        gains_update_time = 0;
+        finished_update_gains = false;
+    }
     
+    if (gains_update_duration == 0.0)
+    {
+        gains_update_time = 1.0;
+    }
+    else
+    {
+        gains_update_time += 0.001 /* this->getPeriod() */ / gains_update_duration /* in sec */;
+    }
+
+    if (gains_update_time >= 1.0)
+    {
+        gains_update_time = 1.0;
+
+        cart_stiff_out_data = s_cart_stiff_out_data + e_cart_stiff_out_data * gains_update_time;
+        cart_damp_out_data = s_cart_damp_out_data + e_cart_damp_out_data * gains_update_time; 
+
+        finished_update_gains = true;
+        cv.notify_one();
+    }
+
+    // Update target force
+    if (triggered_update_force)
+    {
+        triggered_update_force = false;
+        s_ff_out_data = ff_out_data;
+        force_update_duration = command_force_update_duration;
+
+        e_ff_out_data = t_ff_out_data - s_ff_out_data;
+        force_update_time = 0;
+        finished_update_force = false;
+    }
+    
+    if (force_update_duration == 0.0)
+    {
+        force_update_time = 1.0;
+    }
+    else
+    {
+        force_update_time += 0.001 /* this->getPeriod() */ / force_update_duration /* in sec */;
+    }
+
+    if (force_update_time >= 1.0)
+    {
+        force_update_time = 1.0;
+
+        ff_out_data = s_ff_out_data + e_ff_out_data * force_update_time;
+
+        finished_update_force = true;
+        cv_force.notify_one();
+    }
+
+    if (!finished_update_force)
+    {
+        ff_out_data = s_ff_out_data + e_ff_out_data * force_update_time; 
+    }
     
 
-    iHQP_SoT->update(
-                    ff_out_data,
-                    cart_stiff_out_data,
-                    cart_damp_out_data,
-                    pose_out_data,
-                    jnt_stiff_out_data,
-                    jnt_damp_out_data,
-                    des_posture_out_data);
+    iHQP_SoT->update(ff_out_data,
+                     cart_stiff_out_data,
+                     cart_damp_out_data,
+                     pose_out_data,
+                     jnt_stiff_out_data,
+                     jnt_damp_out_data,
+                     des_posture_out_data);
 
-    iHQP_SoT->stack->update(q); //not sure if passing q make any sense...
+    iHQP_SoT->stack->update(q);
 
     if (!iHQP_SoT->qp_problem_solver->solve(out_torques_data)) {
-        RTT::log(RTT::Warning) <<"Solution NOT found."<<RTT::endlog();
-        // Below is better to send previous solution instead of zero
-        // or something that does not constitute a hidden assumption
+        RTT::log(RTT::Error) << "Solution NOT found." << RTT::endlog();
         out_torques_data.setZero(7);
     }
     
     // out_torques_port.write(out_torques_data + in_coriolisAndGravity_data - kv * qd);
     out_torques_port.write(out_torques_data);
-    // prepare_monitors();
-    // write_ports();
-
 }
 
 void RTTControlStack::stopHook()
@@ -228,9 +311,54 @@ void RTTControlStack::setJntPosture(int idx, double value)
     des_posture_out_data(idx) = value;
 }
 
+void RTTControlStack::setMassSpringDamper(const Eigen::VectorXd &KP, const Eigen::VectorXd &KD, double time, bool blocking)
+{
+    finished_update_gains = true;
+    for (unsigned int i = 0; i < 6; i++)
+    {
+        t_cart_stiff_out_data(i,i) = KP(i);
+        t_cart_damp_out_data(i,i) = KD(i);
+    }
+
+    command_gains_update_duration = time;
+
+    triggered_update_gains = true;
+
+    if (blocking)
+    {
+        // Wait until main() sends data
+        std::unique_lock<std::mutex> lck(m);
+        cv.wait(lck);
+    }
+}
+
+void RTTControlStack::setContactConstraintForce(const Eigen::VectorXd &force, double time, bool blocking)
+{
+    finished_update_force = true;
+
+    t_ff_out_data(0) = force(0);
+    t_ff_out_data(1) = force(1);
+    t_ff_out_data(2) = force(2);
+    t_ff_out_data(3) = force(3);
+    t_ff_out_data(4) = force(4);
+    t_ff_out_data(5) = force(5);
+
+    command_force_update_duration = time;
+
+    triggered_update_force = true;
+
+    if (blocking)
+    {
+        // Wait until main() sends data
+        std::unique_lock<std::mutex> lck_force(m_force);
+        cv_force.wait(lck_force);
+    }
+}
+
 void RTTControlStack::setCartStiffness(double KP)
 {
     // cart_stiff_out_data = Eigen::MatrixXd::Identity(6, 6) * KP;
+    finished_update_gains = true;
 
     cart_stiff_out_data(0,0) = KP;
     cart_stiff_out_data(1,1) = KP;
@@ -244,6 +372,7 @@ void RTTControlStack::setCartStiffness(double KP)
 void RTTControlStack::setCartStiffnessE(const Eigen::VectorXd &KP)
 {
     // cart_stiff_out_data = Eigen::MatrixXd::Identity(6, 6);
+    finished_update_gains = true;
     for (unsigned int i = 0; i < 6; i++)
     {
         cart_stiff_out_data(i,i) = KP(i);
@@ -253,6 +382,7 @@ void RTTControlStack::setCartStiffnessE(const Eigen::VectorXd &KP)
 void RTTControlStack::setCartDamping(double KD)
 {
     // cart_damp_out_data = Eigen::MatrixXd::Identity(6, 6) * KD;
+    finished_update_gains = true;
     cart_damp_out_data(0,0) = KD;
     cart_damp_out_data(1,1) = KD;
     cart_damp_out_data(2,2) = KD;
@@ -265,6 +395,7 @@ void RTTControlStack::setCartDamping(double KD)
 void RTTControlStack::setCartDampingE(const Eigen::VectorXd &KD)
 {
     // cart_damp_out_data = Eigen::MatrixXd::Identity(6, 6);
+    finished_update_gains = true;
     for (unsigned int i = 0; i < 6; i++)
     {
         cart_damp_out_data(i,i) = KD(i);
@@ -391,22 +522,12 @@ void RTTControlStack::printInfo()
 {
     Eigen::MatrixXd tmp = Eigen::MatrixXd::Zero(4,4);
     Eigen::Affine3d affine_tmp;
-    if (stack_type == 0)
-    {
-        iHQP_SoT->cart_imped_high->getActualPose(tmp);
-        std::cout<<"cart_imped_high->getActualPose ->\n"<<tmp<<"\n----------------------"<<std::endl;
-        std::cout<<"base: "<<iHQP_SoT->cart_imped_high->getBaseLink()<<std::endl;
-        std::cout<<"ee: "<<iHQP_SoT->cart_imped_high->getDistalLink()<<std::endl;
-        this->model->getPose(iHQP_SoT->cart_imped_high->getDistalLink(),affine_tmp);
-    }
-    else if (stack_type == 1)
-    {
-        iHQP_SoT_cart_wo_js->cart_imped_high->getActualPose(tmp);
-        std::cout<<"cart_imped_high->getActualPose ->\n"<<tmp<<"\n----------------------"<<std::endl;
-        std::cout<<"base: "<<iHQP_SoT_cart_wo_js->cart_imped_high->getBaseLink()<<std::endl;
-        std::cout<<"ee: "<<iHQP_SoT_cart_wo_js->cart_imped_high->getDistalLink()<<std::endl;
-        this->model->getPose(iHQP_SoT_cart_wo_js->cart_imped_high->getDistalLink(),affine_tmp);
-    }
+
+    iHQP_SoT->cart_imped_high->getActualPose(tmp);
+    std::cout<<"cart_imped_high->getActualPose ->\n"<<tmp<<"\n----------------------"<<std::endl;
+    std::cout<<"base: "<<iHQP_SoT->cart_imped_high->getBaseLink()<<std::endl;
+    std::cout<<"ee: "<<iHQP_SoT->cart_imped_high->getDistalLink()<<std::endl;
+    this->model->getPose(iHQP_SoT->cart_imped_high->getDistalLink(),affine_tmp);
     
     std::cout<<"model->getPose ->\n" << affine_tmp.matrix() << "\n----------------------"<<std::endl;
     std::cout<<"q: \n"<<q.transpose()<<"\nqd: \n"<<qd.transpose()<<"\ntau: \n"<<tau.transpose()<<std::endl;

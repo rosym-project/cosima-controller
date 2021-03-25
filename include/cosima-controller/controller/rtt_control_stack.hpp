@@ -22,7 +22,10 @@
 #include <geometry_msgs/Twist.h>
 
 #include "rtt_stack_cart.hpp"
-#include "rtt_stack_cart_wo_js.hpp"
+
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 namespace cosima
 {
@@ -41,8 +44,11 @@ namespace cosima
         void setJointStiffnessE(const Eigen::VectorXd &KP);
         void setJointDampingE(const Eigen::VectorXd &KD);
 
+        // Deprecated
         void setCartStiffnessE(const Eigen::VectorXd &KP);
         void setCartDampingE(const Eigen::VectorXd &KD);
+
+        void setMassSpringDamper(const Eigen::VectorXd &KP, const Eigen::VectorXd &KD, double time, bool blocking);
 
     private:
         /*---------------------------------input ports--------------------------------*/
@@ -87,8 +93,6 @@ namespace cosima
 
         /*-------------------------backend solvers and stacks-------------------------*/
         boost::shared_ptr<qp_problem> iHQP_SoT;
-        // 
-        boost::shared_ptr<qp_problem_cart_wo_js> iHQP_SoT_cart_wo_js;
         // TODO: This is hard coded. FIXIT!
         XBot::ModelInterface::Ptr model;
         bool model_configured;
@@ -115,12 +119,19 @@ namespace cosima
         void setFFRot(double x, double y, double z);
         void setJntPosture(int idx, double value);
 
-        Eigen::VectorXd ff_out_data;
+        Eigen::VectorXd ff_out_data, t_ff_out_data, s_ff_out_data, e_ff_out_data;
         Eigen::MatrixXd cart_stiff_out_data;
         Eigen::MatrixXd cart_damp_out_data;
         Eigen::MatrixXd jnt_stiff_out_data;
         Eigen::MatrixXd jnt_damp_out_data;
         Eigen::VectorXd des_posture_out_data;
+
+        Eigen::MatrixXd s_cart_stiff_out_data;
+        Eigen::MatrixXd s_cart_damp_out_data;
+        Eigen::MatrixXd e_cart_stiff_out_data;
+        Eigen::MatrixXd t_cart_stiff_out_data;
+        Eigen::MatrixXd e_cart_damp_out_data;
+        Eigen::MatrixXd t_cart_damp_out_data;
 
         /*-------------------output torques and robot configruation-------------------*/
         // fix the DoF size in the next line during code generation!
@@ -137,9 +148,23 @@ namespace cosima
         RTT::FlowStatus in_coriolisAndGravity_flow;
         Eigen::VectorXd in_coriolisAndGravity_data;
 
-        int stack_type;
-
         bool first_no_command;
+
+        bool finished_update_gains;
+        bool triggered_update_gains;
+        double command_gains_update_duration;
+        double gains_update_duration;
+        double gains_update_time;
+
+        bool finished_update_force;
+        bool triggered_update_force;
+        double command_force_update_duration;
+        double force_update_duration;
+        double force_update_time;
+
+        //
+        std::mutex m, m_force;
+        std::condition_variable cv, cv_force;
     };
 
   } // namespace controller

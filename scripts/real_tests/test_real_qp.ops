@@ -119,22 +119,24 @@ sot.setCartStiffness(300)
 
 # Cart Stiffness
 var eigen_vector css = eigen_vector(6)
-css[0]=100.0
-css[1]=100.0
-css[2]=100.0
-css[3]=30.0
-css[4]=30.0
-css[5]=10.0
-sot.setCartStiffnessE(css)
+css[0]=10.0
+css[1]=10.0
+css[2]=10.0
+css[3]=3.0
+css[4]=3.0
+css[5]=1.0
+# sot.setCartStiffnessE(css)
 # Cart Damping
 var eigen_vector csd = eigen_vector(6)
-csd[0]=20.0
-csd[1]=20.0
-csd[2]=20.0
-csd[3]=1.0
-csd[4]=1.0
-csd[5]=1.0
-sot.setCartDampingE(csd)
+csd[0]=3.0
+csd[1]=3.0
+csd[2]=3.0
+csd[3]=0.2
+csd[4]=0.2
+csd[5]=0.2
+# sot.setCartDampingE(csd)
+
+sot.setMassSpringDamper(css, csd, 0.0, false)
 
 # 0.440385 SOT vs 0.43861 KUKA
 
@@ -194,5 +196,21 @@ connect("KinDyn.out_cartPos_0_port","css.in_pose_port", cp)
 connect("css.out_desiredTaskSpace_port","sot.in_desiredTaskSpace_port", cp)
 
 sot.start()
+
+css[0]=1600.0
+css[1]=1600.0
+css[2]=1600.0
+css[3]=200.0
+css[4]=200.0
+css[5]=10.0
+# 
+csd[0]=60.0
+csd[1]=60.0
+csd[2]=60.0
+csd[3]=1.5
+csd[4]=1.5
+csd[5]=1.0
+# 
+sot.setMassSpringDamper(css, csd, 5.0, true)
 
 css.start()
