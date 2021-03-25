@@ -108,6 +108,15 @@ void RTTKinDynMultiArm::updateHook()
             in_external_torque_vars[arms].setZero(); // TODO good like this?
             in_external_torque_flows[arms] = in_external_torque_ports[arms]->read(in_external_torque_vars[arms]);
             in_external_torque_var_stacked.segment(e_index_begin, e_index_end) = in_external_torque_vars[arms];
+
+            // PRELOG(Error) << "Connected " << arms << ":\n" << in_external_torque_vars[arms] << "\nstack:\n" << in_external_torque_var_stacked << RTT::endlog();
+        }
+        else
+        {
+            // Setting to zero
+            in_external_torque_flows[arms] = RTT::NoData;
+            in_external_torque_vars[arms].setZero();
+            in_external_torque_var_stacked.segment(e_index_begin, e_index_end) = in_external_torque_vars[arms];
         }
 
         // Take care of externally provided robot state
@@ -173,7 +182,7 @@ void RTTKinDynMultiArm::updateHook()
             out_cartAcc_var,
             out_jacobian_var,
             out_jacobianDot_var,
-            in_external_gravity_var_stacked,
+            in_external_torque_var_stacked,
             out_external_wrench_var,
             in_external_gravity_var_stacked,
             in_inertia_var_stacked,
@@ -224,11 +233,18 @@ void RTTKinDynMultiArm::updateHook()
         out_cartPos_vars[arm].orientation.z = out_cartPos_var((arm * 7) + 6);
 
         out_cartVel_vars[arm].linear.x = out_cartVel_var((arm * 6) + 0);
-        out_cartVel_vars[arm].linear.x = out_cartVel_var((arm * 6) + 1);
-        out_cartVel_vars[arm].linear.x = out_cartVel_var((arm * 6) + 2);
+        out_cartVel_vars[arm].linear.y = out_cartVel_var((arm * 6) + 1);
+        out_cartVel_vars[arm].linear.z = out_cartVel_var((arm * 6) + 2);
         out_cartVel_vars[arm].angular.x = out_cartVel_var((arm * 6) + 3);
         out_cartVel_vars[arm].angular.y = out_cartVel_var((arm * 6) + 4);
         out_cartVel_vars[arm].angular.z = out_cartVel_var((arm * 6) + 5);
+
+        out_external_wrench_vars[arm].force.x = out_external_wrench_var((arm * 6) + 0);
+        out_external_wrench_vars[arm].force.y = out_external_wrench_var((arm * 6) + 1);
+        out_external_wrench_vars[arm].force.z = out_external_wrench_var((arm * 6) + 2);
+        out_external_wrench_vars[arm].torque.x = out_external_wrench_var((arm * 6) + 3);
+        out_external_wrench_vars[arm].torque.y = out_external_wrench_var((arm * 6) + 4);
+        out_external_wrench_vars[arm].torque.z = out_external_wrench_var((arm * 6) + 5);
     }
 
     out_robotstatus_port.write(out_robotstatus_var);

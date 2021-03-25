@@ -29,7 +29,6 @@
 
 # Load the rtt ros service lib.
 import("rtt_ros")
-# Load the lib.
 ros.import("cosima-fri-iiwa-hw")
 
 ros.import("rtt_roscomm")
@@ -39,7 +38,6 @@ ros.import("rtt_sensor_msgs")
 ros.import("rtt_geometry_msgs")
 
 ros.import("cosima-controller")
-
 
 loadComponent("robot","cosima::RTTFRIiiwaHW")
 setActivityOnCPU("robot",0,90,ORO_SCHED_RT,0)
