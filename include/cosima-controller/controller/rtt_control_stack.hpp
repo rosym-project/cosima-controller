@@ -97,13 +97,10 @@ namespace cosima
         /*------------------------------helper functions------------------------------*/
         double getTime();
         void init_ports();
-        void read_ports();
         void prepare_monitors();
         void write_ports();
         bool check_ports_connectivity();
         bool load_config(std::string config_path);
-        void set_sot_references();
-        void update_model();
         double kv;
 
         void printInfo();
@@ -141,6 +138,8 @@ namespace cosima
         Eigen::VectorXd in_coriolisAndGravity_data;
 
         int stack_type;
+
+        bool first_no_command;
     };
 
   } // namespace controller

@@ -72,6 +72,14 @@ bool RTTControlStack::configureHook()
     // TODO if (check_ports_connectivity() && model_configured) {
     if (model_configured) {
         // qp_sot instantiation. FIXME: add for other solver and removed the hard-coded part
+        // q(0) = 1.5708;
+        // q(1) = -0.76689767;
+        // q(2) = 0.0;
+        // q(3) = 0.9276425;
+        // q(4) = 0.0;
+        // q(5) = -1.4470525;
+        // q(6) = 1.5708; // TODO vs zero
+
         q(0) = 1.5166;
         q(1) = -0.279104;
         q(2) = 0.0;
@@ -79,6 +87,16 @@ bool RTTControlStack::configureHook()
         q(4) = 0.0;
         q(5) = -1.57083;
         q(6) = 0.0;
+
+        // q(0) = 1.15804;
+        // q(1) = -0.507475;
+        // q(2) = -0.0825445;
+        // q(3) = 1.06426;
+        // q(4) = 0.0;
+        // q(5) = -1.49978;
+        // q(6) = 0.0;
+
+
         
         this->model->setJointPosition(q);
         this->model->update();
@@ -86,7 +104,7 @@ bool RTTControlStack::configureHook()
         iHQP_SoT_cart_wo_js.reset(new qp_problem_cart_wo_js(model, q));
         return true;
     } else {
-        RTT::log(RTT::Error) <<"Some ports are not connected or the model noot configured."<<RTT::endlog();
+        RTT::log(RTT::Error) <<"Some ports are not connected or the model is not configured."<<RTT::endlog();
         return false;
     }
 }
@@ -104,6 +122,7 @@ bool RTTControlStack::startHook()
     
 	// joint_space_redres_desired_joint_output_port.createStream(rtt_roscomm::topic("/joint_space_redres/desired_joint"));
 	// RTT::log(RTT::Info) <<"Created stream forjoint_space_redres_desired_joint over the topic: /joint_space_redres/desired_joint..."<<RTT::endlog();
+    first_no_command = true;
 
     RTT::log(RTT::Info) <<"Staring..."<<RTT::endlog();
     return true;
@@ -111,32 +130,87 @@ bool RTTControlStack::startHook()
 
 void RTTControlStack::updateHook()
 {
-    read_ports();
-    update_model();
-    set_sot_references();
-
-    if (stack_type == 0)
+    /*----------------------------input port from robot---------------------------*/
+    in_robotstatus_flow = in_robotstatus_port.read(in_robotstatus_data);
+    if (in_robotstatus_flow == RTT::NoData)
     {
-        iHQP_SoT->stack->update(q); //not sure if passing q make any sense...
-
-        if (!iHQP_SoT->qp_problem_solver->solve(out_torques_data)) {
-            RTT::log(RTT::Warning) <<"Solution NOT found."<<RTT::endlog();
-            // Below is better to send previous solution instead of zero
-            // or something that does not constitute a hidden assumption
-            out_torques_data.setZero(7);
-        }
+        return;
     }
-    else if (stack_type == 1)
+
+    in_coriolisAndGravity_port.read(in_coriolisAndGravity_data);
+
+    for(int i=0; i<7; ++i){
+        q[i] = in_robotstatus_data.position[i];
+        qd[i] = in_robotstatus_data.velocity[i];
+        tau[i] = in_robotstatus_data.effort[i];
+    }
+    
+    in_desiredTaskSpace_flow = in_desiredTaskSpace_port.read(in_desiredTaskSpace_var);
+
+    this->model->setJointPosition(q);
+    this->model->setJointVelocity(qd);
+    this->model->update();
+
+    //
+    Eigen::MatrixXd pose_out_data = Eigen::MatrixXd::Identity(4,4);
+    Eigen::Quaterniond rotation;
+
+    if (first_no_command && in_desiredTaskSpace_flow == RTT::NoData)
     {
-        iHQP_SoT_cart_wo_js->stack->update(q); //not sure if passing q make any sense...
+        first_no_command = false;
+        Eigen::MatrixXd tmp = Eigen::MatrixXd::Zero(4,4);
+        iHQP_SoT->cart_imped_high->getActualPose(tmp);
+        
+        in_desiredTaskSpace_var.transforms[0].translation.x = (tmp.block<3,1>(0,3))(0);
+        in_desiredTaskSpace_var.transforms[0].translation.y = (tmp.block<3,1>(0,3))(1);
+        in_desiredTaskSpace_var.transforms[0].translation.z = (tmp.block<3,1>(0,3))(2);
+        // pose_out_data.block<3,1>(0,3) = tmp.block<3,1>(0,3);
 
-        if (!iHQP_SoT_cart_wo_js->qp_problem_solver->solve(out_torques_data)) {
-            RTT::log(RTT::Warning) <<"Solution NOT found."<<RTT::endlog();
-            // Below is better to send previous solution instead of zero
-            // or something that does not constitute a hidden assumption
-            out_torques_data.setZero(7);
-        }
+        rotation = tmp.block<3,3>(0,0);
+        in_desiredTaskSpace_var.transforms[0].rotation.w = rotation.w();
+        in_desiredTaskSpace_var.transforms[0].rotation.x = rotation.x();
+        in_desiredTaskSpace_var.transforms[0].rotation.y = rotation.y();
+        in_desiredTaskSpace_var.transforms[0].rotation.z = rotation.z();
+        // pose_out_data.block<3,3>(0,0) = tmp.block<3,3>(0,0);
+
+        RTT::log(RTT::Error) <<"No command received, taking: "
+            << "\n x: " << in_desiredTaskSpace_var.transforms[0].translation.x
+            << "\n y: " << in_desiredTaskSpace_var.transforms[0].translation.y
+            << "\n z: " << in_desiredTaskSpace_var.transforms[0].translation.z
+            << "\n w: " << in_desiredTaskSpace_var.transforms[0].rotation.w
+            << "\n x: " << in_desiredTaskSpace_var.transforms[0].rotation.x
+            << "\n y: " << in_desiredTaskSpace_var.transforms[0].rotation.y
+            << "\n z: " << in_desiredTaskSpace_var.transforms[0].rotation.z
+            << RTT::endlog();
     }
+
+    pose_out_data.block<3,1>(0,3) << in_desiredTaskSpace_var.transforms[0].translation.x,in_desiredTaskSpace_var.transforms[0].translation.y,in_desiredTaskSpace_var.transforms[0].translation.z;
+
+    rotation.vec() << in_desiredTaskSpace_var.transforms[0].rotation.x,in_desiredTaskSpace_var.transforms[0].rotation.y,in_desiredTaskSpace_var.transforms[0].rotation.z;
+    rotation.w() = in_desiredTaskSpace_var.transforms[0].rotation.w;
+    pose_out_data.block<3,3>(0,0) = rotation.toRotationMatrix();
+
+    
+    
+
+    iHQP_SoT->update(
+                    ff_out_data,
+                    cart_stiff_out_data,
+                    cart_damp_out_data,
+                    pose_out_data,
+                    jnt_stiff_out_data,
+                    jnt_damp_out_data,
+                    des_posture_out_data);
+
+    iHQP_SoT->stack->update(q); //not sure if passing q make any sense...
+
+    if (!iHQP_SoT->qp_problem_solver->solve(out_torques_data)) {
+        RTT::log(RTT::Warning) <<"Solution NOT found."<<RTT::endlog();
+        // Below is better to send previous solution instead of zero
+        // or something that does not constitute a hidden assumption
+        out_torques_data.setZero(7);
+    }
+    
     // out_torques_port.write(out_torques_data + in_coriolisAndGravity_data - kv * qd);
     out_torques_port.write(out_torques_data);
     // prepare_monitors();
@@ -144,50 +218,9 @@ void RTTControlStack::updateHook()
 
 }
 
-void RTTControlStack::set_sot_references()
-{
-  Eigen::MatrixXd pose_out_data = Eigen::MatrixXd::Identity(4,4);
-  pose_out_data.block<3,1>(0,3) << in_desiredTaskSpace_var.transforms[0].translation.x,in_desiredTaskSpace_var.transforms[0].translation.y,in_desiredTaskSpace_var.transforms[0].translation.z;
-
-  Eigen::Quaterniond rotation;
-  rotation.vec() << in_desiredTaskSpace_var.transforms[0].rotation.x,in_desiredTaskSpace_var.transforms[0].rotation.y,in_desiredTaskSpace_var.transforms[0].rotation.z;
-  rotation.w() = in_desiredTaskSpace_var.transforms[0].rotation.w;
-  pose_out_data.block<3,3>(0,0) = rotation.toRotationMatrix();
-  // pass the set-points read from ports to the SoT
-
-    //   if (stack_type) ...
-    iHQP_SoT->update(
-               ff_out_data,
-               cart_stiff_out_data,
-               cart_damp_out_data,
-               pose_out_data,
-               jnt_stiff_out_data,
-               jnt_damp_out_data,
-               des_posture_out_data);
-
-    iHQP_SoT_cart_wo_js->update(
-               ff_out_data,
-               cart_stiff_out_data,
-               cart_damp_out_data,
-               pose_out_data,
-               jnt_stiff_out_data,
-               jnt_damp_out_data,
-               des_posture_out_data);
-}
-
 void RTTControlStack::stopHook()
 {
     RTT::log(RTT::Info) <<"Stopping..."<<RTT::endlog();
-}
-
-void RTTControlStack::update_model()
-{
-    this->model->setJointPosition(q);
-	this->model->setJointVelocity(qd);
-	// this->model->setJointAcceleration(qdd);
-	// this->model->setJointEffort(tau);
-	this->model->update();
-
 }
 
 void RTTControlStack::setJntPosture(int idx, double value)
@@ -305,24 +338,32 @@ void RTTControlStack::init_ports()
     in_desiredTaskSpace_var = trajectory_msgs::MultiDOFJointTrajectoryPoint();
     in_desiredTaskSpace_var.transforms.push_back(geometry_msgs::Transform());
     //
-    // in_desiredTaskSpace_var.transforms[0].translation.x = -0.0287248;
-    // in_desiredTaskSpace_var.transforms[0].translation.y = -0.529656 ;
-    // in_desiredTaskSpace_var.transforms[0].translation.z = 0.467355  ;
-    // in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0174455 ;
-    // in_desiredTaskSpace_var.transforms[0].rotation.x = 0.687507  ;
-    // in_desiredTaskSpace_var.transforms[0].rotation.y = -0.72578  ;
-    // in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0165435 ;
-    in_desiredTaskSpace_var.transforms[0].translation.x = 0.000158222;
-    in_desiredTaskSpace_var.transforms[0].translation.y = -0.675439 ;
-    in_desiredTaskSpace_var.transforms[0].translation.z = 0.285982  ;
-    // in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0150682 ;
-    // in_desiredTaskSpace_var.transforms[0].rotation.x = 0.707013  ;
-    // in_desiredTaskSpace_var.transforms[0].rotation.y = -0.706876  ;
-    // in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0152298 ;
-    in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0;
-    in_desiredTaskSpace_var.transforms[0].rotation.x = 0.0;
-    in_desiredTaskSpace_var.transforms[0].rotation.y = 1.0;
-    in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0;
+    // // in_desiredTaskSpace_var.transforms[0].translation.x = -0.0287248;
+    // // in_desiredTaskSpace_var.transforms[0].translation.y = -0.529656 ;
+    // // in_desiredTaskSpace_var.transforms[0].translation.z = 0.467355  ;
+    // // in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0174455 ;
+    // // in_desiredTaskSpace_var.transforms[0].rotation.x = 0.687507  ;
+    // // in_desiredTaskSpace_var.transforms[0].rotation.y = -0.72578  ;
+    // // in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0165435 ;
+    // in_desiredTaskSpace_var.transforms[0].translation.x = 0.0;
+    // in_desiredTaskSpace_var.transforms[0].translation.y = -0.68835;
+    // in_desiredTaskSpace_var.transforms[0].translation.z = 0.26309;
+    // // in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0150682 ;
+    // // in_desiredTaskSpace_var.transforms[0].rotation.x = 0.707013  ;
+    // // in_desiredTaskSpace_var.transforms[0].rotation.y = -0.706876  ;
+    // // in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0152298 ;
+    // in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0;
+    // in_desiredTaskSpace_var.transforms[0].rotation.x = 0.0;
+    // in_desiredTaskSpace_var.transforms[0].rotation.y = 1.0;
+    // in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0;
+
+    in_desiredTaskSpace_var.transforms[0].translation.x = -0.0287248;
+    in_desiredTaskSpace_var.transforms[0].translation.y = -0.529656;
+    in_desiredTaskSpace_var.transforms[0].translation.z = 0.467355;
+    in_desiredTaskSpace_var.transforms[0].rotation.w = 0.0174455;
+    in_desiredTaskSpace_var.transforms[0].rotation.x = 0.687507;
+    in_desiredTaskSpace_var.transforms[0].rotation.y = -0.72578;
+    in_desiredTaskSpace_var.transforms[0].rotation.z = 0.0165435;
 
 
 
@@ -337,20 +378,6 @@ void RTTControlStack::init_ports()
 bool RTTControlStack::check_ports_connectivity()
 {
     return true;
-}
-
-void RTTControlStack::read_ports()
-{
-    /*----------------------------input port from robot---------------------------*/
-    in_robotstatus_flow = in_robotstatus_port.read(in_robotstatus_data);
-	in_coriolisAndGravity_port.read(in_coriolisAndGravity_data);
-	for(int i=0; i<7; ++i){
-		q[i] = in_robotstatus_data.position[i];
-		qd[i] = in_robotstatus_data.velocity[i];
-		tau[i] = in_robotstatus_data.effort[i];
-	}
-    
-    in_desiredTaskSpace_flow = in_desiredTaskSpace_port.read(in_desiredTaskSpace_var);
 }
 
 void RTTControlStack::write_ports()
