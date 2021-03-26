@@ -18,7 +18,7 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
     //
     finished_update_force = true;
     force_update_duration = 4.0;
-    forces_update_time = 0.0;
+    force_update_time = 0.0;
     triggered_update_force = false;
     command_force_update_duration = force_update_duration;
     addProperty("force_update_duration", force_update_duration);
@@ -103,29 +103,21 @@ bool RTTControlStack::configureHook()
     // TODO if (check_ports_connectivity() && model_configured) {
     if (model_configured) {
         // qp_sot instantiation. FIXME: add for other solver and removed the hard-coded part
-        // q(0) = 1.5708;
-        // q(1) = -0.76689767;
+        // q(0) = 1.5166;
+        // q(1) = -0.279104;
         // q(2) = 0.0;
-        // q(3) = 0.9276425;
+        // q(3) = 1.24357;
         // q(4) = 0.0;
-        // q(5) = -1.4470525;
-        // q(6) = 1.5708; // TODO vs zero
-
-        q(0) = 1.5166;
-        q(1) = -0.279104;
-        q(2) = 0.0;
-        q(3) = 1.24357;
-        q(4) = 0.0;
-        q(5) = -1.57083;
-        q(6) = 0.0;
-
-        // q(0) = 1.15804;
-        // q(1) = -0.507475;
-        // q(2) = -0.0825445;
-        // q(3) = 1.06426;
-        // q(4) = 0.0;
-        // q(5) = -1.49978;
+        // q(5) = -1.57083;
         // q(6) = 0.0;
+
+        q(0) = 1.56845;
+        q(1) = -0.448372;
+        q(2) = -0.070882;
+        q(3) = 1.36423;
+        q(4) = -0.0121202;
+        q(5) = -1.25336;
+        q(6) = 0.785342;
 
 
         
@@ -234,15 +226,29 @@ void RTTControlStack::updateHook()
         gains_update_time += 0.001 /* this->getPeriod() */ / gains_update_duration /* in sec */;
     }
 
-    if (gains_update_time >= 1.0)
+    if ((gains_update_time >= 1.0) && (!finished_update_gains))
     {
         gains_update_time = 1.0;
 
         cart_stiff_out_data = s_cart_stiff_out_data + e_cart_stiff_out_data * gains_update_time;
         cart_damp_out_data = s_cart_damp_out_data + e_cart_damp_out_data * gains_update_time; 
 
+        RTT::log(RTT::Error) << "Gains converged!" << RTT::endlog();
+
         finished_update_gains = true;
         cv.notify_one();
+    }
+    
+    if (!finished_update_gains)
+    {
+        cart_stiff_out_data = s_cart_stiff_out_data + e_cart_stiff_out_data * gains_update_time;
+        cart_damp_out_data = s_cart_damp_out_data + e_cart_damp_out_data * gains_update_time; 
+
+        RTT::log(RTT::Error) << "cart_stiff_out_data(0,0) = " << cart_stiff_out_data(0,0) << RTT::endlog();
+        RTT::log(RTT::Error) << "> s_cart_stiff_out_data(0,0) = " << s_cart_stiff_out_data(0,0) << RTT::endlog();
+        RTT::log(RTT::Error) << "> gut = " << gains_update_time << RTT::endlog();
+        RTT::log(RTT::Error) << "> e_cart_damp_out_data * gut(0,0) = " << (e_cart_damp_out_data * gains_update_time)(0,0) << RTT::endlog();
+        RTT::log(RTT::Error) << "\n\n" << RTT::endlog();
     }
 
     // Update target force
@@ -266,7 +272,7 @@ void RTTControlStack::updateHook()
         force_update_time += 0.001 /* this->getPeriod() */ / force_update_duration /* in sec */;
     }
 
-    if (force_update_time >= 1.0)
+    if ((force_update_time >= 1.0) && (!finished_update_force))
     {
         force_update_time = 1.0;
 

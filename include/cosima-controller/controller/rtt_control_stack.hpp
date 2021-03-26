@@ -49,6 +49,7 @@ namespace cosima
         void setCartDampingE(const Eigen::VectorXd &KD);
 
         void setMassSpringDamper(const Eigen::VectorXd &KP, const Eigen::VectorXd &KD, double time, bool blocking);
+        void setContactConstraintForce(const Eigen::VectorXd &force, double time, bool blocking);
 
     private:
         /*---------------------------------input ports--------------------------------*/

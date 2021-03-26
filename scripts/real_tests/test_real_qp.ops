@@ -70,6 +70,10 @@ var ConnPolicy cp;
 
 connect("robot.out_kuka1_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
 
+connect("robot.out_kuka1_ext_torque_fdb","KinDyn.in_external_torque_0_port",cp)
+
+stream("KinDyn.out_external_wrench_0_port", ros.topic("robot/wrench"))
+
 ################################
 loadComponent("sot", "cosima::controller::RTTControlStack")
 setActivityOnCPU("sot",0.001,90,ORO_SCHED_RT, 4)
@@ -86,29 +90,15 @@ connect("sot.out_torques_port","robot.in_kuka1_JointTorqueCtrl_cmd", cp)
 
 sot.configure()
 sot.gravCompDamp = 1
-# sot.setJntPosture(0,1.5166)
-# sot.setJntPosture(1,-0.279104)
-# sot.setJntPosture(2,0.0)
-# sot.setJntPosture(3,1.24357)
-# sot.setJntPosture(4,0.0)
-# sot.setJntPosture(5,-1.57083)
-# sot.setJntPosture(6,0.0)
-################################
-# sot.setJntPosture(0,1.57086)
-# sot.setJntPosture(1,-0.698182)
-# sot.setJntPosture(2,0.0)
-# sot.setJntPosture(3,1.0769)
-# sot.setJntPosture(4,0.0)
-# sot.setJntPosture(5,-1.32629)
-# sot.setJntPosture(6,0.0)
 
-# sot.setJntPosture(0,1.5708)
-# sot.setJntPosture(1,-0.76689767)
-# sot.setJntPosture(2,0.0)
-# sot.setJntPosture(3,0.9276425)
-# sot.setJntPosture(4,0.0)
-# sot.setJntPosture(5,-1.4470525)
-# sot.setJntPosture(6,1.5708)
+
+sot.setJntPosture(0,1.56845)
+sot.setJntPosture(1,-0.448372)
+sot.setJntPosture(2,-0.070882)
+sot.setJntPosture(3,1.36423)
+sot.setJntPosture(4,-0.0121202)
+sot.setJntPosture(5,-1.25336)
+sot.setJntPosture(6,0.785342)
 
 
 stream("sot.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
@@ -118,22 +108,42 @@ sot.setCartDamping(9)
 sot.setCartStiffness(300)
 
 # Cart Stiffness
+# var eigen_vector css = eigen_vector(6)
+# css[0]=10.0
+# css[1]=10.0
+# css[2]=10.0
+# css[3]=3.0
+# css[4]=3.0
+# css[5]=1.0
+# # sot.setCartStiffnessE(css)
+# # Cart Damping
+# var eigen_vector csd = eigen_vector(6)
+# csd[0]=3.0
+# csd[1]=3.0
+# csd[2]=3.0
+# csd[3]=0.2
+# csd[4]=0.2
+# csd[5]=0.2
+# # sot.setCartDampingE(csd)
+
+# sot.setMassSpringDamper(css, csd, 0.0, false)
+
 var eigen_vector css = eigen_vector(6)
-css[0]=10.0
-css[1]=10.0
-css[2]=10.0
-css[3]=3.0
-css[4]=3.0
+css[0]=3.0
+css[1]=3.0
+css[2]=3.0
+css[3]=1.0
+css[4]=1.0
 css[5]=1.0
 # sot.setCartStiffnessE(css)
 # Cart Damping
 var eigen_vector csd = eigen_vector(6)
-csd[0]=3.0
-csd[1]=3.0
-csd[2]=3.0
-csd[3]=0.2
-csd[4]=0.2
-csd[5]=0.2
+csd[0]=0.1
+csd[1]=0.1
+csd[2]=0.1
+csd[3]=0.1
+csd[4]=0.1
+csd[5]=0.1
 # sot.setCartDampingE(csd)
 
 sot.setMassSpringDamper(css, csd, 0.0, false)
@@ -182,12 +192,6 @@ jsd[6]=1.0
 sot.setJointDampingE(jsd)
 
 
-robot.start()
-
-KinDyn.start()
-# sot.start()
-
-
 loadComponent("css", "cosima::coordination::ContactSituationSwitcher")
 setActivityOnCPU("css",0.001,10,ORO_SCHED_RT,3)
 css.configure()
@@ -195,8 +199,20 @@ css.configure()
 connect("KinDyn.out_cartPos_0_port","css.in_pose_port", cp)
 connect("css.out_desiredTaskSpace_port","sot.in_desiredTaskSpace_port", cp)
 
+
+robot.start()
+robot.waitForReady()
+
+KinDyn.start()
+
+
+
+
+
 sot.start()
 
+
+# var eigen_vector css = eigen_vector(6)
 css[0]=1600.0
 css[1]=1600.0
 css[2]=1600.0
@@ -204,6 +220,7 @@ css[3]=200.0
 css[4]=200.0
 css[5]=10.0
 # 
+# var eigen_vector csd = eigen_vector(6)
 csd[0]=60.0
 csd[1]=60.0
 csd[2]=60.0
@@ -211,6 +228,6 @@ csd[3]=1.5
 csd[4]=1.5
 csd[5]=1.0
 # 
-sot.setMassSpringDamper(css, csd, 5.0, true)
+sot.setMassSpringDamper(css, csd, 6.0, true)
 
-css.start()
+# css.start()
