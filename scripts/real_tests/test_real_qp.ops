@@ -170,22 +170,24 @@ sot.setMassSpringDamper(css, csd, 0.0, false)
 
 # Joint Stiffness
 var eigen_vector jss = eigen_vector(7)
-jss[0]=1.0
-jss[1]=1.0
-jss[2]=1.0
-jss[3]=1.0
-jss[4]=1.0
-jss[5]=1.0
+jss[0]=3.0
+jss[1]=3.0
+jss[2]=3.0
+jss[3]=3.0
+# jss[4]=50.0
+jss[4]=5.0
+jss[5]=5.0
 jss[6]=1.0
 
 sot.setJointStiffnessE(jss)
 # Joint Damping
 var eigen_vector jsd = eigen_vector(7)
-jsd[0]=1.0
-jsd[1]=1.0
-jsd[2]=1.0
-jsd[3]=1.0
+jsd[0]=2.0
+jsd[1]=2.0
+jsd[2]=2.0
+jsd[3]=2.0
 jsd[4]=1.0
+# jsd[5]=10.0
 jsd[5]=1.0
 jsd[6]=1.0
 
@@ -216,18 +218,38 @@ sot.start()
 css[0]=1600.0
 css[1]=1600.0
 css[2]=1600.0
-css[3]=200.0
-css[4]=200.0
-css[5]=10.0
+css[3]=300.0
+css[4]=300.0
+css[5]=100.0
 # 
 # var eigen_vector csd = eigen_vector(6)
 csd[0]=60.0
 csd[1]=60.0
 csd[2]=60.0
-csd[3]=1.5
-csd[4]=1.5
+csd[3]=1.2
+csd[4]=1.2
 csd[5]=1.0
 # 
-sot.setMassSpringDamper(css, csd, 6.0, true)
+sot.setMassSpringDamper(css, csd, 5.0, true)
 
-# css.start()
+css.start()
+
+
+
+# var eigen_vector css = eigen_vector(6)
+# css[0]=1600.0
+# css[1]=1600.0
+# css[2]=0.0
+# css[3]=300.0
+# css[4]=300.0
+# css[5]=100.0
+# # 
+# var eigen_vector csd = eigen_vector(6)
+# csd[0]=60.0
+# csd[1]=60.0
+# csd[2]=0.0
+# csd[3]=1.2
+# csd[4]=1.2
+# csd[5]=1.0
+# # 
+# sot.setMassSpringDamper(css, csd, 5.0, false)
