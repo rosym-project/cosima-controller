@@ -49,7 +49,11 @@ namespace cosima
         void setCartDampingE(const Eigen::VectorXd &KD);
 
         void setMassSpringDamper(const Eigen::VectorXd &KP, const Eigen::VectorXd &KD, double time, bool blocking);
-        void setContactConstraintForce(const Eigen::VectorXd &force, double time, bool blocking);
+        void setContactConstraintForce(const Eigen::VectorXd &dir, const Eigen::VectorXd &force, double time, bool blocking);
+
+        void updateContactSituationBlocking(const Eigen::VectorXd &kp, const Eigen::VectorXd &kd, const Eigen::VectorXd &fdir, const Eigen::VectorXd &force, double time);
+
+        void updateContactSituation(const Eigen::VectorXd &kp, const Eigen::VectorXd &kd, const Eigen::VectorXd &fdir, const Eigen::VectorXd &force, double time);
 
     private:
         /*---------------------------------input ports--------------------------------*/
@@ -134,6 +138,21 @@ namespace cosima
         Eigen::MatrixXd e_cart_damp_out_data;
         Eigen::MatrixXd t_cart_damp_out_data;
 
+        // Contact Constraints
+        Eigen::VectorXd t_dir_data;
+        bool triggered_update_contacts;
+        bool finished_update_contacts;
+        double command_update_contacts_duration;
+        // 
+        Eigen::MatrixXd backup_cart_stiff_out_data;
+        Eigen::MatrixXd backup_cart_damp_out_data;
+
+        bool notify_update_contacts_from_m, notify_update_contacts_from_f;
+
+        // 
+        // double contacts_update_duration;
+        // double contacts_update_time;
+
         /*-------------------output torques and robot configruation-------------------*/
         // fix the DoF size in the next line during code generation!
         RTT::OutputPort<Eigen::VectorXd> out_torques_port;
@@ -164,8 +183,8 @@ namespace cosima
         double force_update_time;
 
         //
-        std::mutex m, m_force;
-        std::condition_variable cv, cv_force;
+        std::mutex m, m_force, m_contact;
+        std::condition_variable cv, cv_force, cv_contact;
     };
 
   } // namespace controller

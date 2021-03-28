@@ -408,7 +408,10 @@ void ContactSituationSwitcher::updateHook()
     }
     else if (skill_type == 2) // ASSEMBLY
     {
+        // TODO) Wait for skill_type == 1 to complete?
         
+
+        // 1) 
         
     }
 

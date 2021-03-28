@@ -9,6 +9,9 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
 {
     model_configured = false;
 
+    notify_update_contacts_from_m = false;
+    notify_update_contacts_from_f = false;
+
     finished_update_gains = true;
     gains_update_duration = 4.0;
     gains_update_time = 0.0;
@@ -21,6 +24,13 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
     force_update_time = 0.0;
     triggered_update_force = false;
     command_force_update_duration = force_update_duration;
+    addProperty("force_update_duration", force_update_duration);
+
+    finished_update_contacts = true;
+    // contacts_update_duration = 1.0;
+    // contacts_update_time = 0.0;
+    triggered_update_contacts = false;
+    command_update_contacts_duration = force_update_duration;
     addProperty("force_update_duration", force_update_duration);
 
     // TODO: make the following automatic rather than hard-coded
@@ -61,7 +71,6 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
     e_ff_out_data = Eigen::VectorXd::Zero(6);
     addOperation("setFF", &RTTControlStack::setFF, this, RTT::ClientThread);
     addOperation("setFFRot", &RTTControlStack::setFFRot, this, RTT::ClientThread);
-    //
 
     s_cart_stiff_out_data = Eigen::MatrixXd::Identity(6, 6) * 100;
     e_cart_stiff_out_data = Eigen::MatrixXd::Zero(6, 6);
@@ -70,6 +79,12 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
     s_cart_damp_out_data = Eigen::MatrixXd::Identity(6, 6) * 1;
     e_cart_damp_out_data = Eigen::MatrixXd::Zero(6, 6);
     t_cart_damp_out_data = Eigen::MatrixXd::Identity(6, 6) * 1;
+
+    backup_cart_stiff_out_data = Eigen::MatrixXd::Identity(6, 6) * 100;
+    backup_cart_damp_out_data = Eigen::MatrixXd::Identity(6, 6) * 1;
+
+    // Target directions for contact constraint
+    t_dir_data = Eigen::VectorXd::Zero(6);
 
 
     cart_stiff_out_data = Eigen::MatrixXd::Identity(6, 6) * 100;
@@ -94,6 +109,9 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
     // Use this instead!
     addOperation("setMassSpringDamper", &RTTControlStack::setMassSpringDamper, this, RTT::ClientThread);
     addOperation("setContactConstraintForce", &RTTControlStack::setContactConstraintForce, this, RTT::ClientThread);
+
+    addOperation("updateContactSituationBlocking", &RTTControlStack::updateContactSituationBlocking, this, RTT::ClientThread);
+    addOperation("updateContactSituation", &RTTControlStack::updateContactSituation, this, RTT::ClientThread);
 }
 
 bool RTTControlStack::configureHook()
@@ -203,6 +221,46 @@ void RTTControlStack::updateHook()
     rotation.w() = in_desiredTaskSpace_var.transforms[0].rotation.w;
     pose_out_data.block<3,3>(0,0) = rotation.toRotationMatrix();
 
+    /////////////////////////////////////////////////
+    // Update contact constraints
+    if (triggered_update_contacts)
+    {
+        triggered_update_contacts = false;
+        // stiff & damp
+        s_cart_stiff_out_data = cart_stiff_out_data;
+        s_cart_damp_out_data = cart_damp_out_data;
+        // 
+        s_ff_out_data = ff_out_data;
+
+        for (unsigned int i = 0; i < 6; i++)
+        {
+            if (t_dir_data(i,i) == 0.0)
+            {
+                e_cart_stiff_out_data(i,i) = t_cart_stiff_out_data(i,i) - s_cart_stiff_out_data(i,i);
+                e_cart_damp_out_data(i,i) = t_cart_damp_out_data(i,i) - s_cart_damp_out_data(i,i);
+                e_ff_out_data(i,i) = 0.0 - s_ff_out_data(i,i);
+            }
+            else
+            {
+                e_cart_stiff_out_data(i,i) = 0.0 - s_cart_stiff_out_data(i,i);
+                e_cart_damp_out_data(i,i) = 0.0 - s_cart_damp_out_data(i,i);
+
+                e_ff_out_data(i,i) = t_ff_out_data(i,i) - s_ff_out_data(i,i);
+            }
+        }
+        // time
+        gains_update_duration = command_update_contacts_duration;
+        force_update_duration = command_update_contacts_duration;
+        // 
+        gains_update_time = 0;
+        force_update_time = 0;
+        finished_update_contacts = false;
+        finished_update_gains = false;
+        finished_update_force = false;
+    }
+
+    /////////////////////////////////////////////////
+
     // Update target gains
     if (triggered_update_gains)
     {
@@ -237,6 +295,11 @@ void RTTControlStack::updateHook()
 
         finished_update_gains = true;
         cv.notify_one();
+
+        if (!finished_update_contacts)
+        {
+            notify_update_contacts_from_m = true;
+        }
     }
     
     if (!finished_update_gains)
@@ -280,11 +343,24 @@ void RTTControlStack::updateHook()
 
         finished_update_force = true;
         cv_force.notify_one();
+
+        if (!finished_update_contacts)
+        {
+            notify_update_contacts_from_f = true;
+        }
     }
 
     if (!finished_update_force)
     {
         ff_out_data = s_ff_out_data + e_ff_out_data * force_update_time; 
+    }
+
+    if (notify_update_contacts_from_m && notify_update_contacts_from_f && !finished_update_contacts)
+    {
+        finished_update_contacts = true;
+        notify_update_contacts_from_m = false;
+        notify_update_contacts_from_f = false;
+        cv_contact.notify_one();
     }
     
 
@@ -324,6 +400,9 @@ void RTTControlStack::setMassSpringDamper(const Eigen::VectorXd &KP, const Eigen
     {
         t_cart_stiff_out_data(i,i) = KP(i);
         t_cart_damp_out_data(i,i) = KD(i);
+
+        backup_cart_stiff_out_data(i,i) = KP(i);
+        backup_cart_damp_out_data(i,i) = KD(i);
     }
 
     command_gains_update_duration = time;
@@ -338,9 +417,16 @@ void RTTControlStack::setMassSpringDamper(const Eigen::VectorXd &KP, const Eigen
     }
 }
 
-void RTTControlStack::setContactConstraintForce(const Eigen::VectorXd &force, double time, bool blocking)
+void RTTControlStack::setContactConstraintForce(const Eigen::VectorXd &dir, const Eigen::VectorXd &force, double time, bool blocking)
 {
     finished_update_force = true;
+
+    t_dir_data(0) = dir(0);
+    t_dir_data(1) = dir(1);
+    t_dir_data(2) = dir(2);
+    t_dir_data(3) = dir(3);
+    t_dir_data(4) = dir(4);
+    t_dir_data(5) = dir(5);
 
     t_ff_out_data(0) = force(0);
     t_ff_out_data(1) = force(1);
@@ -359,6 +445,69 @@ void RTTControlStack::setContactConstraintForce(const Eigen::VectorXd &force, do
         std::unique_lock<std::mutex> lck_force(m_force);
         cv_force.wait(lck_force);
     }
+}
+
+void RTTControlStack::updateContactSituationBlocking(const Eigen::VectorXd &kp, const Eigen::VectorXd &kd, const Eigen::VectorXd &fdir, const Eigen::VectorXd &force, double time)
+{
+    finished_update_contacts = true;
+
+    t_dir_data(0) = fdir(0);
+    t_dir_data(1) = fdir(1);
+    t_dir_data(2) = fdir(2);
+    t_dir_data(3) = fdir(3);
+    t_dir_data(4) = fdir(4);
+    t_dir_data(5) = fdir(5);
+
+    t_ff_out_data(0) = force(0);
+    t_ff_out_data(1) = force(1);
+    t_ff_out_data(2) = force(2);
+    t_ff_out_data(3) = force(3);
+    t_ff_out_data(4) = force(4);
+    t_ff_out_data(5) = force(5);
+
+    for (unsigned int i = 0; i < 6; i++)
+    {
+        t_cart_stiff_out_data(i,i) = kp(i);
+        t_cart_damp_out_data(i,i) = kd(i);
+    }
+
+    command_update_contacts_duration = time;
+
+    triggered_update_contacts = true;
+
+    // if (blocking)
+    // Wait until main() sends data
+    std::unique_lock<std::mutex> lck_contact(m_contact);
+    cv_contact.wait(lck_contact);
+}
+
+void RTTControlStack::updateContactSituation(const Eigen::VectorXd &kp, const Eigen::VectorXd &kd, const Eigen::VectorXd &fdir, const Eigen::VectorXd &force, double time)
+{
+    finished_update_contacts = true;
+
+    t_dir_data(0) = fdir(0);
+    t_dir_data(1) = fdir(1);
+    t_dir_data(2) = fdir(2);
+    t_dir_data(3) = fdir(3);
+    t_dir_data(4) = fdir(4);
+    t_dir_data(5) = fdir(5);
+
+    t_ff_out_data(0) = force(0);
+    t_ff_out_data(1) = force(1);
+    t_ff_out_data(2) = force(2);
+    t_ff_out_data(3) = force(3);
+    t_ff_out_data(4) = force(4);
+    t_ff_out_data(5) = force(5);
+
+    for (unsigned int i = 0; i < 6; i++)
+    {
+        t_cart_stiff_out_data(i,i) = kp(i);
+        t_cart_damp_out_data(i,i) = kd(i);
+    }
+
+    command_update_contacts_duration = time;
+
+    triggered_update_contacts = true;
 }
 
 void RTTControlStack::setCartStiffness(double KP)
