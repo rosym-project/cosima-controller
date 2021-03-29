@@ -278,3 +278,45 @@ css.start()
 # csd[5]=1.0
 # # 
 # sot.setMassSpringDamper(css, csd, 5.0, true)
+
+
+# ####################
+# var eigen_vector cssD = eigen_vector(6)
+# cssD[0]=1600.0
+# cssD[1]=1600.0
+# cssD[2]=1600.0
+# cssD[3]=300.0
+# cssD[4]=300.0
+# cssD[5]=100.0
+# # 
+# var eigen_vector csdD = eigen_vector(6)
+# csdD[0]=80.0
+# csdD[1]=80.0
+# csdD[2]=80.0
+# csdD[3]=1.2
+# csdD[4]=1.2
+# csdD[5]=1.0
+# # 
+# var eigen_vector fdirD = eigen_vector(6)
+# fdirD[0]=0.0
+# fdirD[1]=1.0
+# fdirD[2]=1.0
+# fdirD[3]=1.0
+# fdirD[4]=0.0
+# fdirD[5]=0.0
+
+# # fdirD[0]=0.0
+# # fdirD[1]=0.0
+# # fdirD[2]=0.0
+# # fdirD[3]=0.0
+# # fdirD[4]=0.0
+# # fdirD[5]=0.0
+# # 
+# var eigen_vector fD = eigen_vector(6)
+# fD[0]=0.0
+# fD[1]=5.0
+# fD[2]=0.0
+# fD[3]=0.0
+# fD[4]=0.0
+# fD[5]=0.0
+# sot.updateContactSituationBlocking(cssD, csdD, fdirD, fD, 5.0)
