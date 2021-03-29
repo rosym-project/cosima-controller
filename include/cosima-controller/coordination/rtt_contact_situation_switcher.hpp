@@ -46,6 +46,8 @@
 #include <geometry_msgs/Wrench.h>
 #include <cosima_msgs/Assemble.h>
 #include <cosima_msgs/Move.h>
+#include <cosima_msgs/ContactSituation.h>
+#include <cosima_msgs/ContactForce.h>
 #include <trajectory_msgs/MultiDOFJointTrajectoryPoint.h>
 
 #include <std_msgs/Bool.h>
@@ -79,6 +81,10 @@ namespace cosima
 
       bool assemble_srv(cosima_msgs::AssembleRequest& req,cosima_msgs::AssembleResponse& resp);
       bool move_srv(cosima_msgs::MoveRequest& req,cosima_msgs::MoveResponse& resp);
+
+      bool updateContactSituationBlocking_srv(cosima_msgs::ContactSituationRequest& req,cosima_msgs::ContactSituationResponse& resp);
+
+      bool setFFVec_srv(cosima_msgs::ContactForceRequest& req,cosima_msgs::ContactForceResponse& resp);
 
       // InputPort: current cart pose
       RTT::InputPort<geometry_msgs::Pose> in_pose_port;
@@ -156,7 +162,9 @@ namespace cosima
       std::mutex m;
       std::condition_variable cv;
       
+      RTT::OperationCaller<void(Eigen::VectorXd,Eigen::VectorXd,Eigen::VectorXd,Eigen::VectorXd,double)> getOperation_updateContactSituationBlocking;
 
+      RTT::OperationCaller<void(Eigen::VectorXd)> getOperation_setFFVec;
     };
 
   } // namespace coordination

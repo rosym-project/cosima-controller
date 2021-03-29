@@ -124,6 +124,8 @@ namespace cosima
         void setFFRot(double x, double y, double z);
         void setJntPosture(int idx, double value);
 
+        void setFFVec(const Eigen::VectoXd &force);
+
         Eigen::VectorXd ff_out_data, t_ff_out_data, s_ff_out_data, e_ff_out_data;
         Eigen::MatrixXd cart_stiff_out_data;
         Eigen::MatrixXd cart_damp_out_data;

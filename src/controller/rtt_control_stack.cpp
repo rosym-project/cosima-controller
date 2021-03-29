@@ -112,6 +112,8 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
 
     addOperation("updateContactSituationBlocking", &RTTControlStack::updateContactSituationBlocking, this, RTT::ClientThread);
     addOperation("updateContactSituation", &RTTControlStack::updateContactSituation, this, RTT::ClientThread);
+
+    addOperation("setFFVec", &RTTControlStack::setFFVec, this, RTT::ClientThread);
 }
 
 bool RTTControlStack::configureHook()
@@ -590,6 +592,16 @@ void RTTControlStack::setFF(double x, double y, double z)
     ff_out_data(0) = x;
     ff_out_data(1) = y;
     ff_out_data(2) = z;
+}
+
+void RTTControlStack::setFFVec(const Eigen::VectoXd &force)
+{
+    ff_out_data(0) = force(0);
+    ff_out_data(1) = force(1);
+    ff_out_data(2) = force(2);
+    ff_out_data(3) = force(3);
+    ff_out_data(4) = force(4);
+    ff_out_data(5) = force(5);
 }
 
 void RTTControlStack::setFFRot(double x, double y, double z)

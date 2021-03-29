@@ -219,19 +219,93 @@ bool ContactSituationSwitcher::configureHook()
     out_orn_ = Eigen::Quaterniond::Identity();
     des_orn_ = Eigen::Quaterniond::Identity();
     cur_orn_ = Eigen::Quaterniond::Identity();
-    
 
+    this->skill_stack_ptr = this->getPeer("ctrl");
+    if (this->skill_stack_ptr)
+    {
+        PRELOG(Error) << "ctrl peered!" << RTT::endlog();
+        // Link to operations
+        this->getOperation_updateContactSituationBlocking = this->skill_stack_ptr->getOperation("updateContactSituationBlocking");
+        this->addOperation("updateContactSituationBlocking_srv",&ContactSituationSwitcher::updateContactSituationBlocking_srv,this);
+
+        this->getOperation_setFFVec = this->skill_stack_ptr->getOperation("setFFVec");
+        this->addOperation("setFFVec_srv",&ContactSituationSwitcher::setFFVec_srv,this);
+    }
+    else
+    {
+        PRELOG(Fatal) << "ctrl NOT peered!" << RTT::endlog();
+        return false;
+    }
+    
     // ROS services
     boost::shared_ptr<rtt_rosservice::ROSService> rosservice = this->getProvider<rtt_rosservice::ROSService>("rosservice");
     if(rosservice)
     {
         rosservice->connect("assemble_srv",this->getName()+"/assemble_srv","cosima_msgs/Assemble");
         rosservice->connect("move_srv",this->getName()+"/move_srv","cosima_msgs/Move");
+        if (this->skill_stack_ptr)
+        {
+            rosservice->connect("updateContactSituationBlocking_srv",this->getName()+"/updateContactSituationBlocking_srv","cosima_msgs/ContactSituation");
+
+            rosservice->connect("setFFVec_srv",this->getName()+"/setFFVec_srv","cosima_msgs/ContactForce");
+        }
     }
     else
     {
         PRELOG(Error) << "ROSService not available" << RTT::endlog();
     }
+    return true;
+}
+
+void ContactSituationSwitcher::updateContactSituationBlocking_srv(cosima_msgs::ContactSituationRequest& req,cosima_msgs::ContactSituationResponse& resp)
+{
+    Eigen::VectorXd kp = Eigen::VectorXd::Zero(6);
+    kp(0) = req.kp_trans.x;
+    kp(1) = req.kp_trans.y;
+    kp(2) = req.kp_trans.z;
+    kp(3) = req.kp_rot.x;
+    kp(4) = req.kp_rot.y;
+    kp(5) = req.kp_rot.z;
+
+    Eigen::VectorXd kd = Eigen::VectorXd::Zero(6);
+    kd(0) = req.kd_trans.x;
+    kd(1) = req.kd_trans.y;
+    kd(2) = req.kd_trans.z;
+    kd(3) = req.kd_rot.x;
+    kd(4) = req.kd_rot.y;
+    kd(5) = req.kd_rot.z;
+
+    Eigen::VectorXd fdir = Eigen::VectorXd::Zero(6);
+    fdir(0) = req.fdir_trans.x;
+    fdir(1) = req.fdir_trans.y;
+    fdir(2) = req.fdir_trans.z;
+    fdir(3) = req.fdir_rot.x;
+    fdir(4) = req.fdir_rot.y;
+    fdir(5) = req.fdir_rot.z;
+
+    Eigen::VectorXd force = Eigen::VectorXd::Zero(6);
+    force(0) = req.force_trans.x;
+    force(1) = req.force_trans.y;
+    force(2) = req.force_trans.z;
+    force(3) = req.force_rot.x;
+    force(4) = req.force_rot.y;
+    force(5) = req.force_rot.z;
+
+    this->getOperation_updateContactSituationBlocking(kp, kd, fdir, force, req.time);
+    return true;
+}
+
+void ContactSituationSwitcher::setFFVec_srv(cosima_msgs::ContactForceRequest& req,cosima_msgs::ContactForceResponse& resp)
+{
+    Eigen::VectorXd force = Eigen::VectorXd::Zero(6);
+    force(0) = req.wrench.force.x;
+    force(1) = req.wrench.force.y;
+    force(2) = req.wrench.force.z;
+    force(3) = req.wrench.torque.x;
+    force(4) = req.wrench.torque.y;
+    force(5) = req.wrench.torque.z;
+
+    this->getOperation_setFFVec(force);
     return true;
 }
 
