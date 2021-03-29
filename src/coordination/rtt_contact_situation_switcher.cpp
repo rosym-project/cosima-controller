@@ -230,6 +230,8 @@ bool ContactSituationSwitcher::configureHook()
 
         this->getOperation_setFFVec = this->skill_stack_ptr->getOperation("setFFVec");
         this->addOperation("setFFVec_srv",&ContactSituationSwitcher::setFFVec_srv,this);
+
+        this->getOperation_updatePose = this->skill_stack_ptr->getOperation("updatePose");
     }
     else
     {
@@ -290,6 +292,11 @@ bool ContactSituationSwitcher::updateContactSituationBlocking_srv(cosima_msgs::C
     force(3) = req.force_rot.x;
     force(4) = req.force_rot.y;
     force(5) = req.force_rot.z;
+
+    if (req.update_pose_first == true)
+    {
+        this->getOperation_updatePose();
+    }
 
     this->getOperation_updateContactSituationBlocking(kp, kd, fdir, force, req.time);
     return true;

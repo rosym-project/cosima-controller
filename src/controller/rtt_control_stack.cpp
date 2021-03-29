@@ -7,6 +7,8 @@ using namespace controller;
 
 RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(name)
 {
+    schedule_setting_commanded_pose_feedback = false;
+
     model_configured = false;
 
     notify_update_contacts_from_m = false;
@@ -114,6 +116,11 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
     addOperation("updateContactSituation", &RTTControlStack::updateContactSituation, this, RTT::ClientThread);
 
     addOperation("setFFVec", &RTTControlStack::setFFVec, this, RTT::ClientThread);
+
+    addOperation("updatePose", &RTTControlStack::updatePose, this, RTT::ClientThread);
+
+    pose_out_data = Eigen::MatrixXd::Identity(4,4);
+    rotation = Eigen::Quaterniond();
 }
 
 bool RTTControlStack::configureHook()
@@ -179,13 +186,18 @@ void RTTControlStack::updateHook()
     
     in_desiredTaskSpace_flow = in_desiredTaskSpace_port.read(in_desiredTaskSpace_var);
 
+    if (schedule_setting_commanded_pose_feedback)
+    {
+        schedule_setting_commanded_pose_feedback = false;
+        first_no_command = true;
+        in_desiredTaskSpace_flow = RTT::NoData;
+    }
+
     this->model->setJointPosition(q);
     this->model->setJointVelocity(qd);
     this->model->update();
 
     // Handle external pose command
-    Eigen::MatrixXd pose_out_data = Eigen::MatrixXd::Identity(4,4);
-    Eigen::Quaterniond rotation;
 
     if (first_no_command && in_desiredTaskSpace_flow == RTT::NoData)
     {
@@ -206,6 +218,8 @@ void RTTControlStack::updateHook()
         in_desiredTaskSpace_var.transforms[0].rotation.z = rotation.z();
         // pose_out_data.block<3,3>(0,0) = tmp.block<3,3>(0,0);
 
+        in_desiredTaskSpace_flow = RTT::NewData;
+
         RTT::log(RTT::Error) <<"No command received, taking: "
             << "\n x: " << in_desiredTaskSpace_var.transforms[0].translation.x
             << "\n y: " << in_desiredTaskSpace_var.transforms[0].translation.y
@@ -217,11 +231,14 @@ void RTTControlStack::updateHook()
             << RTT::endlog();
     }
 
-    pose_out_data.block<3,1>(0,3) << in_desiredTaskSpace_var.transforms[0].translation.x,in_desiredTaskSpace_var.transforms[0].translation.y,in_desiredTaskSpace_var.transforms[0].translation.z;
+    if (in_desiredTaskSpace_flow == RTT::NewData)
+    {
+        pose_out_data.block<3,1>(0,3) << in_desiredTaskSpace_var.transforms[0].translation.x,in_desiredTaskSpace_var.transforms[0].translation.y,in_desiredTaskSpace_var.transforms[0].translation.z;
 
-    rotation.vec() << in_desiredTaskSpace_var.transforms[0].rotation.x,in_desiredTaskSpace_var.transforms[0].rotation.y,in_desiredTaskSpace_var.transforms[0].rotation.z;
-    rotation.w() = in_desiredTaskSpace_var.transforms[0].rotation.w;
-    pose_out_data.block<3,3>(0,0) = rotation.toRotationMatrix();
+        rotation.vec() << in_desiredTaskSpace_var.transforms[0].rotation.x,in_desiredTaskSpace_var.transforms[0].rotation.y,in_desiredTaskSpace_var.transforms[0].rotation.z;
+        rotation.w() = in_desiredTaskSpace_var.transforms[0].rotation.w;
+        pose_out_data.block<3,3>(0,0) = rotation.toRotationMatrix();
+    }
 
     /////////////////////////////////////////////////
     // Update contact constraints
@@ -309,11 +326,11 @@ void RTTControlStack::updateHook()
         cart_stiff_out_data = s_cart_stiff_out_data + e_cart_stiff_out_data * gains_update_time;
         cart_damp_out_data = s_cart_damp_out_data + e_cart_damp_out_data * gains_update_time; 
 
-        RTT::log(RTT::Error) << "cart_stiff_out_data(0,0) = " << cart_stiff_out_data(0,0) << RTT::endlog();
-        RTT::log(RTT::Error) << "> s_cart_stiff_out_data(0,0) = " << s_cart_stiff_out_data(0,0) << RTT::endlog();
-        RTT::log(RTT::Error) << "> gut = " << gains_update_time << RTT::endlog();
-        RTT::log(RTT::Error) << "> e_cart_damp_out_data * gut(0,0) = " << (e_cart_damp_out_data * gains_update_time)(0,0) << RTT::endlog();
-        RTT::log(RTT::Error) << "\n\n" << RTT::endlog();
+        // RTT::log(RTT::Error) << "cart_stiff_out_data(0,0) = " << cart_stiff_out_data(0,0) << RTT::endlog();
+        // RTT::log(RTT::Error) << "> s_cart_stiff_out_data(0,0) = " << s_cart_stiff_out_data(0,0) << RTT::endlog();
+        // RTT::log(RTT::Error) << "> gut = " << gains_update_time << RTT::endlog();
+        // RTT::log(RTT::Error) << "> e_cart_damp_out_data * gut(0,0) = " << (e_cart_damp_out_data * gains_update_time)(0,0) << RTT::endlog();
+        // RTT::log(RTT::Error) << "\n\n" << RTT::endlog();
     }
 
     // Update target force
@@ -602,6 +619,12 @@ void RTTControlStack::setFFVec(const Eigen::VectorXd &force)
     ff_out_data(3) = force(3);
     ff_out_data(4) = force(4);
     ff_out_data(5) = force(5);
+}
+
+void RTTControlStack::updatePose()
+{
+    RTT::log(RTT::Warning) <<"Scheduling setting Command Pose to Feedback" << RTT::endlog();
+    this->schedule_setting_commanded_pose_feedback = true;
 }
 
 void RTTControlStack::setFFRot(double x, double y, double z)

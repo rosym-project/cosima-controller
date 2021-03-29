@@ -126,6 +126,8 @@ namespace cosima
 
         void setFFVec(const Eigen::VectorXd &force);
 
+        void updatePose();
+
         Eigen::VectorXd ff_out_data, t_ff_out_data, s_ff_out_data, e_ff_out_data;
         Eigen::MatrixXd cart_stiff_out_data;
         Eigen::MatrixXd cart_damp_out_data;
@@ -184,9 +186,14 @@ namespace cosima
         double force_update_duration;
         double force_update_time;
 
+        bool schedule_setting_commanded_pose_feedback;
+
         //
         std::mutex m, m_force, m_contact;
         std::condition_variable cv, cv_force, cv_contact;
+
+        Eigen::MatrixXd pose_out_data;
+        Eigen::Quaterniond rotation;
     };
 
   } // namespace controller

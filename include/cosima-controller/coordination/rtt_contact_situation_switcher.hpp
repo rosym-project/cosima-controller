@@ -165,6 +165,8 @@ namespace cosima
       RTT::OperationCaller<void(Eigen::VectorXd,Eigen::VectorXd,Eigen::VectorXd,Eigen::VectorXd,double)> getOperation_updateContactSituationBlocking;
 
       RTT::OperationCaller<void(Eigen::VectorXd)> getOperation_setFFVec;
+
+      RTT::OperationCaller<void(void)> getOperation_updatePose;
     };
 
   } // namespace coordination
