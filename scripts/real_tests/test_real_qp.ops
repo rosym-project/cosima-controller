@@ -254,3 +254,27 @@ css.start()
 # csd[5]=1.0
 # # 
 # sot.setMassSpringDamper(css, csd, 5.0, false)
+
+
+
+
+########################
+
+
+# var eigen_vector css = eigen_vector(6)
+# css[0]=1600.0
+# css[1]=1600.0
+# css[2]=0.0
+# css[3]=0.0
+# css[4]=300.0
+# css[5]=100.0
+# # 
+# var eigen_vector csd = eigen_vector(6)
+# csd[0]=80.0
+# csd[1]=80.0
+# csd[2]=0.0
+# csd[3]=0.0
+# csd[4]=1.2
+# csd[5]=1.0
+# # 
+# sot.setMassSpringDamper(css, csd, 5.0, true)
