@@ -257,7 +257,7 @@ bool ContactSituationSwitcher::configureHook()
     return true;
 }
 
-void ContactSituationSwitcher::updateContactSituationBlocking_srv(cosima_msgs::ContactSituationRequest& req,cosima_msgs::ContactSituationResponse& resp)
+bool ContactSituationSwitcher::updateContactSituationBlocking_srv(cosima_msgs::ContactSituationRequest& req,cosima_msgs::ContactSituationResponse& resp)
 {
     Eigen::VectorXd kp = Eigen::VectorXd::Zero(6);
     kp(0) = req.kp_trans.x;
@@ -295,7 +295,7 @@ void ContactSituationSwitcher::updateContactSituationBlocking_srv(cosima_msgs::C
     return true;
 }
 
-void ContactSituationSwitcher::setFFVec_srv(cosima_msgs::ContactForceRequest& req,cosima_msgs::ContactForceResponse& resp)
+bool ContactSituationSwitcher::setFFVec_srv(cosima_msgs::ContactForceRequest& req,cosima_msgs::ContactForceResponse& resp)
 {
     Eigen::VectorXd force = Eigen::VectorXd::Zero(6);
     force(0) = req.wrench.force.x;

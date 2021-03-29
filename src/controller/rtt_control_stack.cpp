@@ -594,7 +594,7 @@ void RTTControlStack::setFF(double x, double y, double z)
     ff_out_data(2) = z;
 }
 
-void RTTControlStack::setFFVec(const Eigen::VectoXd &force)
+void RTTControlStack::setFFVec(const Eigen::VectorXd &force)
 {
     ff_out_data(0) = force(0);
     ff_out_data(1) = force(1);
