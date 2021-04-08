@@ -8,13 +8,13 @@ RootControlObjectives:
     ControlObjectives:
       - Name: RobotKukaLeft_motion_tracking
         Robot: RobotKukaLeft
-        OperationalFrame: {Type: Link, Name: iiwa_link_ee, Dof: 6}
+        OperationalFrame: {Type: Link, Name: lwr_tool_link, Dof: 6}
       - Name: RobotKukaLeft_nullspace_tracking
         Robot: RobotKukaLeft
         OperationalFrame: {Type: Chain, Name: full_arm, Dof: 7}
       - Name: RobotKukaLeft_force_constraint
         Robot: RobotKukaLeft
-        OperationalFrame: {Type: Link, Name: iiwa_link_ee, Dof: 6}
+        OperationalFrame: {Type: Link, Name: lwr_tool_link, Dof: 6}
     ContactSituations:
       - Name: Folding_SR_0
         Filters:

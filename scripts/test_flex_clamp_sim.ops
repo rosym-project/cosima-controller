@@ -67,6 +67,10 @@ KinDyn.addChainWithWorldOffset("KDL","/home/flex/system/flexassembly_dev_ws/src/
 KinDyn.configure()
 KinDyn.ext_override = 0
 
+# Introspection
+KinDyn.introspection.enableAllIntrospection(true)
+KinDyn.introspection.enableAutoWriteExecutionInformation(false)
+
 var ConnPolicy cp;
 
 connect("robot.out_iiwa14_0_jointstate_fdb","KinDyn.in_robotstatus_0_port",cp)
@@ -158,7 +162,9 @@ sot.setJointDampingE(jsd)
 
 loadComponent("css", "cosima::coordination::ContactSituationSwitcher")
 setActivityOnCPU("css",0.001,10,ORO_SCHED_RT,3)
+addPeer("css","ctrl") 
 css.configure()
+
 
 connect("KinDyn.out_cartPos_0_port","css.in_pose_port", cp)
 connect("css.out_desiredTaskSpace_port","sot.in_desiredTaskSpace_port", cp)

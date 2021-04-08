@@ -31,7 +31,7 @@
 
 using namespace cosima;
 
-RTTKinDynMultiArm::RTTKinDynMultiArm(std::string const &name) : RTT::TaskContext(name), portsArePrepared(false)
+RTTKinDynMultiArm::RTTKinDynMultiArm(std::string const &name) : cogimon::RTTIntrospectionBase(name), portsArePrepared(false)
 {
     addOperation("addChain", &RTTKinDynMultiArm::addChain, this).doc("add chain");
     addOperation("addChainWithCompliance", &RTTKinDynMultiArm::addChainWithCompliance, this).doc("add chain with compliance");
@@ -52,13 +52,13 @@ void RTTKinDynMultiArm::setComplianceFrame(const unsigned int &index, const geom
     this->solver_manager.setComplianceFrame(index, offset);
 }
 
-bool RTTKinDynMultiArm::configureHook()
+bool RTTKinDynMultiArm::configureHookInternal()
 {
     this->preparePorts();
     return true;
 }
 
-bool RTTKinDynMultiArm::startHook()
+bool RTTKinDynMultiArm::startHookInternal()
 {
     // if (!in_robotstatus_port.connected())
     // {
@@ -71,7 +71,7 @@ bool RTTKinDynMultiArm::startHook()
     return true;
 }
 
-void RTTKinDynMultiArm::updateHook()
+void RTTKinDynMultiArm::updateHookInternal()
 {
     // read all the information that we need for the computations
     bool override = true;
@@ -268,11 +268,11 @@ void RTTKinDynMultiArm::updateHook()
     }
 }
 
-void RTTKinDynMultiArm::stopHook()
+void RTTKinDynMultiArm::stopHookInternal()
 {
 }
 
-void RTTKinDynMultiArm::cleanupHook()
+void RTTKinDynMultiArm::cleanupHookInternal()
 {
     // TODO proper clean up of vars and also of vectors.
     this->portsArePrepared = false;

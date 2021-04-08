@@ -238,6 +238,12 @@ orocos_component(${CMAKE_PROJECT_NAME}
 
   ${PROJECT_SOURCE_DIR}/src/coordination/rtt_contact_situation_switcher.cpp
 
+  ${PROJECT_SOURCE_DIR}/src/introspection/rtt-introspection-base.cpp
+
+# Core Scheduler
+  ${PROJECT_SOURCE_DIR}/src/scheduling/rtt-core-scheduler.cpp
+  ${PROJECT_SOURCE_DIR}/src/scheduling/barrier-data.cpp
+  ${PROJECT_SOURCE_DIR}/src/scheduling/barrier-condition.cpp
 
 ) # ...you may add multiple source files
 endif()
@@ -277,6 +283,13 @@ orocos_component(${CMAKE_PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}/src/coordination/rtt_contact_situation_switcher.cpp
   ${PROJECT_SOURCE_DIR}/src/controller/rtt_control_stack.cpp
 
+  ${PROJECT_SOURCE_DIR}/src/introspection/rtt-introspection-base.cpp
+
+# Core Scheduler
+  ${PROJECT_SOURCE_DIR}/src/scheduling/rtt-core-scheduler.cpp
+  ${PROJECT_SOURCE_DIR}/src/scheduling/barrier-data.cpp
+  ${PROJECT_SOURCE_DIR}/src/scheduling/barrier-condition.cpp
+
 
 ) # ...you may add multiple source files
 endif()
@@ -287,6 +300,19 @@ target_link_libraries(${CMAKE_PROJECT_NAME} ${EIGEN3_LIBRARIES} ${OROCOS-RTT_LIB
 ${catkin_LIBRARIES}
 ${SOLVER_LIBRARIES}
 /opt/xbot/lib
+)
+
+orocos_service(${PROJECT_NAME}-service
+  ${PROJECT_SOURCE_DIR}/src/scheduling/core-scheduler-service.cpp
+)
+
+target_link_libraries(${PROJECT_NAME}-service
+    ${USE_OROCOS_LIBRARIES}
+    ${OROCOS-RTT_LIBRARIES}
+    #${RTT-CORE-EXTENSIONS_LIBRARIES}
+    #${RST-RT_LIBRARIES}
+    # NOT SURE IF THIS IS A GOOD IDEA :D
+    #${PROJECT_NAME}
 )
 
 orocos_generate_package(

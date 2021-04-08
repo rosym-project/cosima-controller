@@ -43,21 +43,27 @@
 // Generic Kin Dyn Solver Interface includes
 #include "kin_dyn_multi_arm.hpp"
 
+// header for introspection
+#include "../introspection/rtt-introspection-base.hpp"
+
 namespace cosima
 {
 
-  class RTTKinDynMultiArm : public RTT::TaskContext
+  class RTTKinDynMultiArm : public cogimon::RTTIntrospectionBase
   {
   public:
     RTTKinDynMultiArm(std::string const &name);
 
-    // RTT::TaskContext methods that are needed for any standard component and
-    // should be implemented by user
-    bool configureHook();
-    bool startHook();
-    void updateHook();
-    void stopHook();
-    void cleanupHook();
+    ///////////////////////////////////////////
+    // Internal mirrors of the default Orocos
+    // life cycle from the introspection base.
+    ///////////////////////////////////////////
+    bool configureHookInternal();
+    bool startHookInternal();
+    void updateHookInternal();
+    void stopHookInternal();
+    void cleanupHookInternal();
+    ///////////////////////////////////////////
 
     // void addCubeObject(float mass, float inertia);
     // void addObjectChain(float mass, Eigen::Vector3f cog, float Ixx, float Iyy, float Izz, float Ixy, float Ixz, float Iyz);
