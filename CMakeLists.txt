@@ -239,6 +239,7 @@ orocos_component(${CMAKE_PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}/src/coordination/rtt_contact_situation_switcher.cpp
 
   ${PROJECT_SOURCE_DIR}/src/introspection/rtt-introspection-base.cpp
+  ${PROJECT_SOURCE_DIR}/src/introspection/rtt-call-sample-collector.cpp
 
 # Core Scheduler
   ${PROJECT_SOURCE_DIR}/src/scheduling/rtt-core-scheduler.cpp
@@ -284,6 +285,7 @@ orocos_component(${CMAKE_PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}/src/controller/rtt_control_stack.cpp
 
   ${PROJECT_SOURCE_DIR}/src/introspection/rtt-introspection-base.cpp
+  ${PROJECT_SOURCE_DIR}/src/introspection/rtt-call-sample-collector.cpp
 
 # Core Scheduler
   ${PROJECT_SOURCE_DIR}/src/scheduling/rtt-core-scheduler.cpp

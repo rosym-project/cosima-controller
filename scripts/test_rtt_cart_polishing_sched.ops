@@ -34,6 +34,7 @@ ros.import("rtt_trajectory_msgs")
 ros.import("eigen_typekit")
 ros.import("rtt_sensor_msgs")
 ros.import("rtt_geometry_msgs")
+ros.import("rtt_cosima_msgs")
 
 ros.import("cosima-controller")
 
@@ -366,9 +367,15 @@ CoreSchedulerService.addPTGFormula("fctrl", "prio")
 CoreSchedulerService.configure()
 
 
+#############
+loadComponent("collector", "cosima::RTTCallSampleCollector");
+setActivityOnCPU("collector", 0.1, 5, ORO_SCHED_OTHER, 2);
+
+
+
 robot.setControlMode("iiwa14_0", "JointTorqueCtrl")
 
-# CoreSchedulerService.start()
+CoreSchedulerService.start()
 
 # Start the CSs.
 # CS1.start()
@@ -385,7 +392,7 @@ robot.setControlMode("iiwa14_0", "JointTorqueCtrl")
 robot.start()
 
 # KinDyn.start()
-# jspdctrl.start()
+jspdctrl.start()
 # # traj.start()
 
 # cartctrl.start()
