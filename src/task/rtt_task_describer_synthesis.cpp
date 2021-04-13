@@ -32,7 +32,7 @@
 using namespace cosima;
 using namespace task;
 
-TaskDescriberSynthesis::TaskDescriberSynthesis(std::string const &name) : RTT::TaskContext(name)
+TaskDescriberSynthesis::TaskDescriberSynthesis(std::string const &name) : cogimon::RTTIntrospectionBase(name)
 {
     //prepare operations
     // addOperation("setDOFsize", &TaskDescriberSynthesis::setDOFsize, this).doc("set DOF size");
@@ -667,7 +667,7 @@ bool TaskDescriberSynthesis::loadYAMLConfig(const std::string &file)
     return true;
 }
 
-bool TaskDescriberSynthesis::configureHook()
+bool TaskDescriberSynthesis::configureHookInternal()
 {
     // intializations and object creations go here. Each component should run this before being able to run
     if (this->hasPeer("prio"))
@@ -679,7 +679,7 @@ bool TaskDescriberSynthesis::configureHook()
     return true;
 }
 
-bool TaskDescriberSynthesis::startHook()
+bool TaskDescriberSynthesis::startHookInternal()
 {
     return true;
 }
@@ -995,9 +995,9 @@ bool TaskDescriberSynthesis::isNewCSReached()
     return this->new_cs_reached_;
 }
 
-void TaskDescriberSynthesis::updateHook()
+void TaskDescriberSynthesis::updateHookInternal()
 {
-    // Change Contact Situation in sync with updateHook
+    // Change Contact Situation in sync with updateHookInternal
     if (this->new_cs_requested_)
     {
         for (unsigned int co_id = 0; co_id < vec_cos_.size(); co_id++)
@@ -1227,7 +1227,7 @@ void TaskDescriberSynthesis::activateContactSituation(const std::string &csName)
     this->new_cs_name_requested_ = csName;
     this->new_cs_requested_ = true;
 
-    // Ausgelagert und sync mit updatehook
+    // Ausgelagert und sync mit updatehookInternal
     // for (unsigned int co_id = 0; co_id < vec_cos_.size(); co_id++)
     // {
     //     vec_cos_[co_id]->activateContactSituation(csName);
@@ -1241,7 +1241,7 @@ void TaskDescriberSynthesis::activateContactSituationResetActivation(const std::
     this->new_cs_name_requested_ = cs_name;
     this->new_cs_requested_ = true;
 
-    // Ausgelagert und sync mit updatehook
+    // Ausgelagert und sync mit updatehookInternal
     // this->debug_pointintime = 0;
     // this->activation_inc_steps_ = 0;
     // if (time_secs > 0)
@@ -1285,13 +1285,13 @@ bool TaskDescriberSynthesis::exists_test(const std::string &name)
     }
 }
 
-void TaskDescriberSynthesis::stopHook()
+void TaskDescriberSynthesis::stopHookInternal()
 {
     // std::map<double>
     //
     // TODO DLW : OK VIELLEICHT MUSS ICH VM UND NORMALE TASKS TRENNEN? WO IST DIE ECHTE ABHAENGIGKEIT DENN?
     //
-    // stops the component (update hook wont be  called anymore)
+    // stops the component (update hookInternal wont be  called anymore)
 
     // std::ofstream myfile;
     // myfile.open ("time_storage.csv");
@@ -1373,7 +1373,7 @@ void TaskDescriberSynthesis::stopHook()
     // RTT::log(RTT::Error) << "Wrote all timing information!" << RTT::endlog();
 }
 
-void TaskDescriberSynthesis::cleanupHook()
+void TaskDescriberSynthesis::cleanupHookInternal()
 {
     // cleaning the component data
     portsArePrepared = false;

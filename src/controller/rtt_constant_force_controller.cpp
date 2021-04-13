@@ -32,8 +32,7 @@
 using namespace cosima;
 using namespace controller;
 
-ConstantForceController::ConstantForceController(std::string const &name)
-    : RTT::TaskContext(name)
+ConstantForceController::ConstantForceController(std::string const &name) : cogimon::RTTIntrospectionBase(name)
 {
     //prepare operations
     addOperation("setDOFsize", &ConstantForceController::setDOFsize, this).doc("set DOF size");
@@ -57,12 +56,12 @@ ConstantForceController::ConstantForceController(std::string const &name)
     this->setConstantForce(0);
 }
 
-bool ConstantForceController::configureHook()
+bool ConstantForceController::configureHookInternal()
 {
     return true;
 }
 
-bool ConstantForceController::startHook()
+bool ConstantForceController::startHookInternal()
 {
     //    if (!in_force_port.connected()) {
     //        RTT::log(RTT::Error) << "in_force_port not connected" << RTT::endlog();
@@ -89,7 +88,7 @@ bool ConstantForceController::startHook()
     return true;
 }
 
-void ConstantForceController::updateHook()
+void ConstantForceController::updateHookInternal()
 {
 #ifdef TIMING
     RTT::os::TimeService::nsecs start = RTT::os::TimeService::Instance()->getNSecs();
@@ -140,11 +139,11 @@ void ConstantForceController::updateHook()
 #endif
 }
 
-void ConstantForceController::stopHook()
+void ConstantForceController::stopHookInternal()
 {
 }
 
-void ConstantForceController::cleanupHook()
+void ConstantForceController::cleanupHookInternal()
 {
     portsArePrepared = false;
 }

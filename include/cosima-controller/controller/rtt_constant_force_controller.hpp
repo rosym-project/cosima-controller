@@ -36,23 +36,29 @@
 // ROS TYPE includes
 #include <sensor_msgs/JointState.h>
 
+// header for introspection
+#include "../introspection/rtt-introspection-base.hpp"
+
 namespace cosima
 {
   namespace controller
   {
 
-    class ConstantForceController : public RTT::TaskContext
+    class ConstantForceController : public cogimon::RTTIntrospectionBase
     {
     public:
       ConstantForceController(std::string const &name);
 
-      // RTT::TaskContext methods that are needed for any standard component and
-      // should be implemented by user
-      bool configureHook();
-      bool startHook();
-      void updateHook();
-      void stopHook();
-      void cleanupHook();
+      ///////////////////////////////////////////
+      // Internal mirrors of the default Orocos
+      // life cycle from the introspection base.
+      ///////////////////////////////////////////
+      bool configureHookInternal();
+      bool startHookInternal();
+      void updateHookInternal();
+      void stopHookInternal();
+      void cleanupHookInternal();
+      ///////////////////////////////////////////
 
       void compute(
           Eigen::VectorXd &in_direction,

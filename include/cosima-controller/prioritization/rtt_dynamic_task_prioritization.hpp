@@ -40,22 +40,30 @@
 
 #include <yaml-cpp/yaml.h>
 
+// header for introspection
+#include "../introspection/rtt-introspection-base.hpp"
+
 namespace cosima
 {
 
   namespace prioritization
   {
 
-    class DynamicTaskPrioritization : public RTT::TaskContext
+    class DynamicTaskPrioritization : public cogimon::RTTIntrospectionBase
     {
     public:
       DynamicTaskPrioritization(std::string const &name);
 
-      bool configureHook();
-      bool startHook();
-      void updateHook();
-      void stopHook();
-      void cleanupHook();
+      ///////////////////////////////////////////
+      // Internal mirrors of the default Orocos
+      // life cycle from the introspection base.
+      ///////////////////////////////////////////
+      bool configureHookInternal();
+      bool startHookInternal();
+      void updateHookInternal();
+      void stopHookInternal();
+      void cleanupHookInternal();
+      ///////////////////////////////////////////
 
       void setDOFsize(unsigned int DOFsize);
       void preparePorts();

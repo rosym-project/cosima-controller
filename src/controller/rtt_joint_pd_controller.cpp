@@ -32,7 +32,7 @@
 using namespace cosima;
 using namespace controller;
 
-RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : RTT::TaskContext(name), total_dof_size(0), useFilter(true), include_gravity(true)
+RTTJointPDCtrl::RTTJointPDCtrl(std::string const &name) : cogimon::RTTIntrospectionBase(name), total_dof_size(0), useFilter(true), include_gravity(true)
 {
     addOperation("addRobot", &RTTJointPDCtrl::addRobot, this)
         .doc("Add a robot in terms of the sequential (controlled) DoF")
@@ -106,7 +106,7 @@ void RTTJointPDCtrl::setPositionCmd(const Eigen::VectorXd &config)
     this->virtual_joint_cmd_flow = RTT::NewData;
 }
 
-bool RTTJointPDCtrl::configureHook()
+bool RTTJointPDCtrl::configureHookInternal()
 {
     if (this->vec_robot_dof.size() <= 0)
     {
@@ -182,12 +182,12 @@ bool RTTJointPDCtrl::configureHook()
     return true;
 }
 
-bool RTTJointPDCtrl::startHook()
+bool RTTJointPDCtrl::startHookInternal()
 {
     return true;
 }
 
-void RTTJointPDCtrl::updateHook()
+void RTTJointPDCtrl::updateHookInternal()
 {
     out_torques_var.setZero();
 
@@ -302,11 +302,11 @@ void RTTJointPDCtrl::updateHook()
     out_torques_port.write(out_torques_var);
 }
 
-void RTTJointPDCtrl::stopHook()
+void RTTJointPDCtrl::stopHookInternal()
 {
 }
 
-void RTTJointPDCtrl::cleanupHook()
+void RTTJointPDCtrl::cleanupHookInternal()
 {
     if (this->ports()->getPort("in_joint_cmd_port"))
     {

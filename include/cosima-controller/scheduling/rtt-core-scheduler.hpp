@@ -114,6 +114,8 @@ private:
   // RTT::FlowStatus in_B_flow;
   // RTT::OutputPort<int> out_exec;
 
+  void executeAndSignal();
+
   double m_startTime; /**< Start time. Details. */
 
   /**
@@ -174,6 +176,11 @@ private:
    * Hold a pointer to the active task context.
    */
   RTT::TaskContext *m_activeTaskContextPtr;
+
+  /**
+   * Hold the old pointer to the active task context.
+   */
+  RTT::TaskContext *m_activeTaskContextPtr_old;
 
   /**
    * This map allows (hopefully) fast access to the data pointer based on the associated port interface.
@@ -238,6 +245,8 @@ private:
   RTT::OutputPort<bool> debugPort;
 
   std::mutex mutex;
+
+  std::mutex mutex_dataOnPortHook;
 };
 
 } // namespace cosima

@@ -35,7 +35,7 @@ using namespace cosima;
 using namespace prioritization;
 using namespace util;
 
-DynamicTaskPrioritization::DynamicTaskPrioritization(std::string const &name) : RTT::TaskContext(name), portsArePrepared(false), substract_gravity(false)
+DynamicTaskPrioritization::DynamicTaskPrioritization(std::string const &name) : cogimon::RTTIntrospectionBase(name), portsArePrepared(false), substract_gravity(false)
 {
     //prepare operations
     // addOperation("setDOFsize", &DynamicTaskPrioritization::setDOFsize, this).doc("set DOF size");
@@ -485,12 +485,12 @@ bool DynamicTaskPrioritization::loadYAMLConfig(const std::string &file)
     return true;
 }
 
-bool DynamicTaskPrioritization::configureHook()
+bool DynamicTaskPrioritization::configureHookInternal()
 {
     return true;
 }
 
-bool DynamicTaskPrioritization::startHook()
+bool DynamicTaskPrioritization::startHookInternal()
 {
     // for (unsigned int portNr = 0; portNr < numInputPorts; portNr++)
     // {
@@ -538,7 +538,7 @@ void DynamicTaskPrioritization::setNewTargetCS(const std::string &cs_name)
     this->new_cs_requested_ = true;
     this->out_new_cs_requested_port.write(this->new_cs_requested_);
 
-    // Ausgelagert und sync mit updatehook
+    // Ausgelagert und sync mit updatehookInternal
     // for (unsigned int i = 0; i < rcss.size(); i++)
     // {
     //     rcss[i].setNewTargetCS(cs_name);
@@ -555,7 +555,7 @@ void DynamicTaskPrioritization::activateContactSituationResetActivation(const st
     this->new_cs_requested_ = true;
     this->out_new_cs_requested_port.write(this->new_cs_requested_);
 
-    // Ausgelagert und sync mit updatehook
+    // Ausgelagert und sync mit updatehookInternal
     // this->debug_pointintime = 0;
     // this->activation_inc_steps_ = 0;
     // if (time_secs > 0)
@@ -796,9 +796,9 @@ bool DynamicTaskPrioritization::isNewCSReached()
     return this->new_cs_reached_;
 }
 
-void DynamicTaskPrioritization::updateHook()
+void DynamicTaskPrioritization::updateHookInternal()
 {
-    // Change Contact Situation in sync with updateHook
+    // Change Contact Situation in sync with updateHookInternal
     if (this->new_cs_requested_)
     {
         for (unsigned int i = 0; i < rcss.size(); i++)
@@ -1032,7 +1032,7 @@ void DynamicTaskPrioritization::updateHook()
     out_debug_pointintime_port.write(debug_pointintime);
 }
 
-void DynamicTaskPrioritization::stopHook()
+void DynamicTaskPrioritization::stopHookInternal()
 {
     size_t size = time_storage.size();
     double median = 0;
@@ -1051,10 +1051,10 @@ void DynamicTaskPrioritization::stopHook()
     }
 
     PRELOG(Error) << "MEDIAN: " << this->getName() << " = " << median << RTT::endlog();
-    // stops the component (update hook wont be  called anymore)
+    // stops the component (update hookInternal wont be  called anymore)
 }
 
-void DynamicTaskPrioritization::cleanupHook()
+void DynamicTaskPrioritization::cleanupHookInternal()
 {
     // cleaning the component data
     portsArePrepared = false;

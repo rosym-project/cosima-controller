@@ -37,8 +37,7 @@
 using namespace cosima;
 using namespace controller;
 
-RTTCartPIDController::RTTCartPIDController(std::string const &name)
-    : RTT::TaskContext(name)
+RTTCartPIDController::RTTCartPIDController(std::string const &name) : cogimon::RTTIntrospectionBase(name)
 {
     addOperation("useTSgravitycompensation", &RTTCartPIDController::useTSgravitycompensation, this).doc("use taskspace gravitycompensation");
     addOperation("addJSgravitycompensation", &RTTCartPIDController::addJSgravitycompensation, this).doc("add jointspace gravitycompensation");
@@ -274,12 +273,12 @@ void RTTCartPIDController::setNoCommandReceivedBehavior(std::string const &type)
     }
 }
 
-bool RTTCartPIDController::configureHook()
+bool RTTCartPIDController::configureHookInternal()
 {
     return true;
 }
 
-bool RTTCartPIDController::startHook()
+bool RTTCartPIDController::startHookInternal()
 {
     // When the controller is started and did not receive a command then it should hold the current position.
     hold_current_position = true;
@@ -359,7 +358,7 @@ bool RTTCartPIDController::startHook()
     return true;
 }
 
-void RTTCartPIDController::updateHook()
+void RTTCartPIDController::updateHookInternal()
 {
     // Read data from mandatory ports
     in_desiredTaskSpacePosition_flow = in_desiredTaskSpace_port.read(in_desiredTaskSpace_var);
@@ -692,11 +691,11 @@ void RTTCartPIDController::updateHook()
     this->out_error_velocity_port.write(this->errorVelocity);
 }
 
-void RTTCartPIDController::stopHook()
+void RTTCartPIDController::stopHookInternal()
 {
 }
 
-void RTTCartPIDController::cleanupHook()
+void RTTCartPIDController::cleanupHookInternal()
 {
     portsArePrepared = false;
 }

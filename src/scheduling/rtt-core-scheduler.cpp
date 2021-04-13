@@ -215,6 +215,41 @@ bool CoreScheduler::startHookInternal()
 	return true;
 }
 
+void CoreScheduler::executeAndSignal()
+{
+	/////////////////////////////////////////////// SIGNAL (Start) ///////////////////////////////////////////////
+	m_activeTaskContextPtr_old->update(); // update() because they are slaves!
+
+	/**
+	 * 
+	 * TODO if there is an external component we need to wait for, do not call update and yield,
+	 * and wait for external finished signal of that component. In the future, we can just add another barrier condition to the next component to call.
+	 * 
+	 */
+
+	try
+	{
+		std::shared_ptr<RTT::OutputPort<bool>> signalPort = genPortOutputSignalPtrs.at(m_activeTaskContextPtr_old->getName()); // assumption here is that the name of a component did not change in the mean time... otherwise I need to use a pointer as key!
+		if (signalPort)
+		{
+			PRELOG(Debug) << "Signaling " << m_activeTaskContextPtr_old->getName() << " done." << RTT::endlog();
+			writePort(signalPort, true);
+		}
+		else
+		{
+			// TODO we can also check based on the configuration, that entirely internal tc's do not need to signal to the outside!
+			PRELOG(Error) << "No signal port for " << m_activeTaskContextPtr_old->getName() << "!" << RTT::endlog();
+		}
+	}
+	catch (const std::out_of_range &e)
+	{
+		// This would only be a problem is the port for an EXTERNAL trigger would not be found.
+
+		// PRELOG(Error) << "Could not signal port for " << m_activeTaskContextPtr->getName() << ", because port was not found in genPortOutputSignalPtrs, which is very strange o.O!" << RTT::endlog();
+	}
+	/////////////////////////////////////////////// SIGNAL (End) ///////////////////////////////////////////////
+}
+
 void CoreScheduler::updateHookInternal()
 {
 	PRELOG(Debug) << "1 updateHook() in progess..." << RTT::endlog();
@@ -235,35 +270,9 @@ next_iteration_without_trigger:
 	if ((!m_activeBarrierCondition) || (m_activeBarrierCondition->isFulfilled()))
 	{
 		PRELOG(Debug) << "Barrier condition fulfilled for " << m_activeTaskContextPtr->getName() << ". Call update()." << RTT::endlog();
-		m_activeTaskContextPtr->update(); // update() because they are slaves!
 
-		/**
-		 * 
-		 * TODO if there is an external component we need to wait for, do not call update and yield,
-		 * and wait for external finished signal of that component. In the future, we can just add another barrier condition to the next component to call.
-		 * 
-		 */
-
-		try
-		{
-			std::shared_ptr<RTT::OutputPort<bool>> signalPort = genPortOutputSignalPtrs.at(m_activeTaskContextPtr->getName()); // assumption here is that the name of a component did not change in the mean time... otherwise I need to use a pointer as key!
-			if (signalPort)
-			{
-				PRELOG(Debug) << "Signaling " << m_activeTaskContextPtr->getName() << " done." << RTT::endlog();
-				writePort(signalPort, true);
-			}
-			else
-			{
-				// TODO we can also check based on the configuration, that entirely internal tc's do not need to signal to the outside!
-				PRELOG(Error) << "No signal port for " << m_activeTaskContextPtr->getName() << "!" << RTT::endlog();
-			}
-		}
-		catch (const std::out_of_range &e)
-		{
-			// This would only be a problem is the port for an EXTERNAL trigger would not be found.
-
-			// PRELOG(Error) << "Could not signal port for " << m_activeTaskContextPtr->getName() << ", because port was not found in genPortOutputSignalPtrs, which is very strange o.O!" << RTT::endlog();
-		}
+		// Store the pointer to the current active tc as old!
+		m_activeTaskContextPtr_old = m_activeTaskContextPtr;
 
 		// Prepare for next iteration
 		m_activeTaskContextIndex++;
@@ -317,6 +326,8 @@ next_iteration_without_trigger:
 					debug_out_name = m_activeTaskContextPtr->getName();
 				}
 
+				this->executeAndSignal();
+
 				if (m_doNextIterationWithoutTrigger)
 				{
 					// Since this is not the end of the sequence, and we do not want to yield inbetween if m_doNextIterationWithoutTrigger == true => goto.
@@ -345,6 +356,9 @@ next_iteration_without_trigger:
 					m_activeBarrierCondition = m_barrierConditions[debug_out_name];
 					PRELOG(Debug) << "Set barrier condition for " << debug_out_name << " active." << RTT::endlog();
 				}
+
+				this->executeAndSignal();
+
 				PRELOG(Debug) << "updateHook() successful. Yield until woken by data event for barrier condition for " << debug_out_name << "." << RTT::endlog();
 				return; // yield
 			}
@@ -383,6 +397,8 @@ next_iteration_without_trigger:
 				}
 			}
 
+			this->executeAndSignal();
+
 			if (!globalTriggerPort)
 			{
 				// ###########################
@@ -411,6 +427,7 @@ next_iteration_without_trigger:
 
 bool CoreScheduler::dataOnPortHook(RTT::base::PortInterface *port)
 {
+	std::lock_guard<std::mutex> lockGuard_dataOnPortHook(mutex_dataOnPortHook);
 	PRELOG(Debug) << "dataOnPortHook( " << port->getName() << " ) in progess..." << RTT::endlog();
 	std::shared_ptr<BarrierData> data_var = m_mapPortToDataPtr[port];
 	if (data_var)
@@ -419,7 +436,7 @@ bool CoreScheduler::dataOnPortHook(RTT::base::PortInterface *port)
 		data_var->setDataState(true);
 		PRELOG(Debug) << "Set data " << data_var->getDataName() << " to " << data_var->getDataState() << "." << RTT::endlog();
 		// check for fulfillment only if data is related to activeBarrierCondition
-		std::lock_guard<std::mutex> lockGuard(mutex); // lock because m_activeBarrierCondition is also accessed in updateHook().
+		std::lock_guard<std::mutex> lockGuard_a(mutex); // lock because m_activeBarrierCondition is also accessed in updateHook().
 		if (m_activeBarrierCondition)
 		{
 			bool in = m_activeBarrierCondition->isBarrierDataRelated(data_var);
@@ -447,13 +464,15 @@ bool CoreScheduler::dataOnPortHook(RTT::base::PortInterface *port)
 	else if (port->getName().compare("globalEventPort") == 0)
 	{
 		// In this case we got a global trigger and have no barrier...
-		std::lock_guard<std::mutex> lockGuard(mutex); // lock because m_activeBarrierCondition is also accessed in updateHook().
+		std::lock_guard<std::mutex> lockGuard_b(mutex); // lock because m_activeBarrierCondition is also accessed in updateHook().
 		if (!m_activeBarrierCondition)
 		{
+			PRELOG(Debug) << "globalEventPort trigger and we have no barrier." << RTT::endlog();
 			return true;
 		}
 		else
 		{
+			PRELOG(Debug) << "globalEventPort trigger attempt but we have a barrier." << RTT::endlog();
 			return false; // TODO?
 		}
 	}
@@ -499,6 +518,10 @@ void CoreScheduler::cleanupHookInternal()
 	// reset m_activeTaskContextPtr
 	PRELOG(Debug) << "Reset active task context pointer." << RTT::endlog();
 	m_activeTaskContextPtr = NULL;
+
+	// reset m_activeTaskContextPtr_old
+	PRELOG(Debug) << "Reset old task context pointer." << RTT::endlog();
+	m_activeTaskContextPtr_old = NULL;
 
 	// reset tc list
 	PRELOG(Debug) << "Reset task context list." << RTT::endlog();

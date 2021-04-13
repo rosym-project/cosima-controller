@@ -39,22 +39,30 @@
 
 // #include <kdl/velocityprofile_trap.hpp>
 
+// header for introspection
+#include "../introspection/rtt-introspection-base.hpp"
+
 namespace cosima
 {
 
   namespace controller
   {
 
-    class RTTJointPDCtrl : public RTT::TaskContext
+    class RTTJointPDCtrl : public cogimon::RTTIntrospectionBase
     {
     public:
       RTTJointPDCtrl(std::string const &name);
 
-      bool configureHook();
-      bool startHook();
-      void updateHook();
-      void stopHook();
-      void cleanupHook();
+      ///////////////////////////////////////////
+      // Internal mirrors of the default Orocos
+      // life cycle from the introspection base.
+      ///////////////////////////////////////////
+      bool configureHookInternal();
+      bool startHookInternal();
+      void updateHookInternal();
+      void stopHookInternal();
+      void cleanupHookInternal();
+      ///////////////////////////////////////////
 
       // This controller can handle stacked robots.
       // For this simple controller however, we do not need this.

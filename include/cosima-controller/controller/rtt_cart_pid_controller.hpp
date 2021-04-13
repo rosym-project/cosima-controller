@@ -53,21 +53,29 @@
 #include <geometry_msgs/Transform.h>
 #include <geometry_msgs/Twist.h>
 
+// header for introspection
+#include "../introspection/rtt-introspection-base.hpp"
+
 namespace cosima
 {
 
   namespace controller
   {
-    class RTTCartPIDController : public RTT::TaskContext
+    class RTTCartPIDController : public cogimon::RTTIntrospectionBase
     {
     public:
       RTTCartPIDController(std::string const &name);
 
-      bool configureHook();
-      bool startHook();
-      void updateHook();
-      void stopHook();
-      void cleanupHook();
+      ///////////////////////////////////////////
+      // Internal mirrors of the default Orocos
+      // life cycle from the introspection base.
+      ///////////////////////////////////////////
+      bool configureHookInternal();
+      bool startHookInternal();
+      void updateHookInternal();
+      void stopHookInternal();
+      void cleanupHookInternal();
+      ///////////////////////////////////////////
 
       bool loadYAMLConfig(const std::string &myname, const std::string &file);
 

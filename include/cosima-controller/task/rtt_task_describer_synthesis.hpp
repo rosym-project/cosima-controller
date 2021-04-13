@@ -58,22 +58,30 @@
 #include "control_component_container.hpp"
 #include "vm_container.hpp"
 
+// header for introspection
+#include "../introspection/rtt-introspection-base.hpp"
+
 namespace cosima
 {
 
   namespace task
   {
 
-    class TaskDescriberSynthesis : public RTT::TaskContext
+    class TaskDescriberSynthesis : public cogimon::RTTIntrospectionBase
     {
     public:
       TaskDescriberSynthesis(std::string const &name);
 
-      bool configureHook();
-      bool startHook();
-      void updateHook();
-      void stopHook();
-      void cleanupHook();
+      ///////////////////////////////////////////
+      // Internal mirrors of the default Orocos
+      // life cycle from the introspection base.
+      ///////////////////////////////////////////
+      bool configureHookInternal();
+      bool startHookInternal();
+      void updateHookInternal();
+      void stopHookInternal();
+      void cleanupHookInternal();
+      ///////////////////////////////////////////
 
       void setJointDOFsize(unsigned int JointDOFsize);
       void preparePorts();
