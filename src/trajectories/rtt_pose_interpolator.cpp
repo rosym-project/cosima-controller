@@ -32,7 +32,7 @@
 using namespace cosima;
 using namespace trajectories;
 
-PoseInterpolator::PoseInterpolator(std::string const &name) : RTT::TaskContext(name)
+PoseInterpolator::PoseInterpolator(std::string const &name) : cogimon::RTTIntrospectionBase(name)
 {
     traj_max_vel = 2.0;
     traj_max_acc = 0.1;
@@ -52,7 +52,7 @@ double PoseInterpolator::getOrocosTime()
     return 1E-9 * RTT::os::TimeService::ticks2nsecs(RTT::os::TimeService::Instance()->getTicks());
 }
 
-bool PoseInterpolator::configureHook()
+bool PoseInterpolator::configureHookInternal()
 {
     if (this->ports()->getPort("in_pose_port"))
     {
@@ -120,7 +120,7 @@ bool PoseInterpolator::configureHook()
     return true;
 }
 
-bool PoseInterpolator::startHook()
+bool PoseInterpolator::startHookInternal()
 {
     st = this->getOrocosTime();
     once = false;
@@ -128,7 +128,7 @@ bool PoseInterpolator::startHook()
     return true;
 }
 
-void PoseInterpolator::updateHook()
+void PoseInterpolator::updateHookInternal()
 {
     in_current_pose_flow = in_current_pose_port.read(in_current_pose_var);
     if (in_current_pose_flow == RTT::NoData)
@@ -266,11 +266,11 @@ void PoseInterpolator::updateHook()
     }
 }
 
-void PoseInterpolator::stopHook()
+void PoseInterpolator::stopHookInternal()
 {
 }
 
-void PoseInterpolator::cleanupHook()
+void PoseInterpolator::cleanupHookInternal()
 {
     if (this->ports()->getPort("in_pose_port"))
     {

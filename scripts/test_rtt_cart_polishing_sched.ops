@@ -307,6 +307,45 @@ connect("prio.out_torques_port", "robot.in_iiwa14_0_JointTorqueCtrl_cmd", cp)
 # stream("sot.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
 # ################################
 
+
+loadComponent("traj", "cosima::trajectories::PoseInterpolator")
+traj.configure()
+
+loadComponent("combiner", "cosima::FeedbackCombiner")
+combiner.setDOFsize(7)
+combiner.addChainDOFsize(7)
+combiner.preparePorts("")
+combiner.configure()
+
+loadComponent("separator", "cosima::TorqueCommandSeparator")
+separator.setDOFsize(7)
+separator.addChainDOFsize(7)
+separator.preparePorts("")
+separator.configure()
+
+# CART CONTROLLER
+loadComponent("csMsdVM0", "cosima::controller::RTTCartPIDController")
+csMsdVM0.addRobot(6, 7);
+csMsdVM0.preparePorts();
+csMsdVM0.configure();
+csMsdVM0.setGains(400,150)
+csMsdVM0.setGainsOrientation(500,200)
+csMsdVM0.addJSgravitycompensation(false)
+csMsdVM0.useTSgravitycompensation(true)
+csMsdVM0.impedanceCTRL = false
+# 
+connect("KinDyn.out_cartPos_port", "csMsdVM0.in_currentTaskSpacePosition_port", cp)
+connect("KinDyn.out_cartVel_port", "csMsdVM0.in_currentTaskSpaceVelocity_port", cp)
+connect("task.out_motion_tracking_1_GC_port", "csMsdVM0.in_coriolisAndGravity_port", cp)
+connect("task.out_motion_tracking_1_Inertia_c_port","csMsdVM0.in_inertia_port", cp)
+connect("task.out_motion_tracking_1_robotstatus_port", "csMsdVM0.in_robotstatus_port", cp)
+connect("task.out_motion_tracking_1_Jacobian_port","csMsdVM0.in_jacobian_port", cp)
+connect("task.out_motion_tracking_1_Jacobian_dot_port","csMsdVM0.in_jacobianDot_port", cp)
+connect("task.out_motion_tracking_1_P_port","csMsdVM0.in_projection_port", cp)
+connect("task.out_motion_tracking_1_P_dot_port","csMsdVM0.in_projectionDot_port", cp)
+# connect("csMsdVM0.out_torques_port", "fctrl.in_tauM_port", cp)
+# connect("csMsdVM0.out_torques_port","prio.in_motion_tracking_1_torques", cp)
+
 # STREAMS
 stream("jspdctrl.in_joint_cmd_port", ros.topic("flex_planning_ros/traj_setpoints"))
 
@@ -328,7 +367,10 @@ loadComponent("CS2", "cosima::CoreScheduler");
 setActivityOnCPU("CS2", 0, 5, ORO_SCHED_OTHER, 1);
 
 loadComponent("CS3", "cosima::CoreScheduler");
-setActivityOnCPU("CS3", 0, 5, ORO_SCHED_OTHER, 3);
+setActivityOnCPU("CS3", 0, 5, ORO_SCHED_OTHER, 2);
+
+loadComponent("CS4", "cosima::CoreScheduler");
+setActivityOnCPU("CS4", 0, 5, ORO_SCHED_OTHER, 3);
 
 # # Configure the CSs with the service API.
 # CoreSchedulerService.setInvolvedCoreScheduler(strings("CS1", "CS2", "CS3"))
@@ -348,20 +390,28 @@ setActivityOnCPU("CS3", 0, 5, ORO_SCHED_OTHER, 3);
 # CoreSchedulerService.addPTGFormula("fctrl", "prio")
 
 # Configure the CSs with the service API.
-CoreSchedulerService.setInvolvedCoreScheduler(strings("CS1", "CS2", "CS3"))
+CoreSchedulerService.setInvolvedCoreScheduler(strings("CS1", "CS2", "CS3", "CS4"))
 # CoreSchedulerService.setExecutionOrder("CS1", strings("robot"))
-CoreSchedulerService.setExecutionOrder("CS1", strings("KinDyn", "task", "prio"))
-CoreSchedulerService.setExecutionOrder("CS2", strings("cartctrl"))
-CoreSchedulerService.setExecutionOrder("CS3", strings("fctrl"))
+# CoreSchedulerService.setExecutionOrder("CS1", strings("traj", "combiner", "KinDyn", "fctrl", "prio", "separator"))
+CoreSchedulerService.setExecutionOrder("CS1", strings("traj", "KinDyn", "fctrl", "prio"))
+CoreSchedulerService.setExecutionOrder("CS2", strings("task"))
+CoreSchedulerService.setExecutionOrder("CS3", strings("cartctrl"))
+CoreSchedulerService.setExecutionOrder("CS4", strings("csMsdVM0"))
 CoreSchedulerService.setLastComponentInPTG("prio")
 
 # Define precedence constraints.
-# CoreSchedulerService.addPTGFormula("robot", "KinDyn")
-# CoreSchedulerService.addPTGFormula("KinDyn", "task")
-CoreSchedulerService.addPTGFormula("task", "cartctrl")
+CoreSchedulerService.addPTGFormula("KinDyn", "task")
 CoreSchedulerService.addPTGFormula("task", "fctrl")
-CoreSchedulerService.addPTGFormula("cartctrl", "prio")
+CoreSchedulerService.addPTGFormula("task", "cartctrl")
+CoreSchedulerService.addPTGFormula("task", "csMsdVM0")
 CoreSchedulerService.addPTGFormula("fctrl", "prio")
+CoreSchedulerService.addPTGFormula("cartctrl", "prio")
+CoreSchedulerService.addPTGFormula("csMsdVM0", "prio")
+
+# 
+# CoreSchedulerService.setExecutionOrder("CS2", strings("csMsdVM0"))
+# CoreSchedulerService.addPTGFormula("task", "csMsdVM0")
+# CoreSchedulerService.addPTGFormula("csMsdVM0", "prio")
 
 # CoreSchedulerService.addPTGFormula("task", "cartctrl")
 
@@ -383,6 +433,10 @@ connectPeers("ir","task");
 connectPeers("ir","prio");
 connectPeers("ir","cartctrl");
 connectPeers("ir","fctrl");
+connectPeers("ir","traj");
+connectPeers("ir","combiner");
+connectPeers("ir","separator");
+connectPeers("ir","csMsdVM0");
 
 
 CS1.introspection.enableAllIntrospection(true);
@@ -424,6 +478,26 @@ fctrl.introspection.enableAllIntrospection(true);
 fctrl.introspection.setCallTraceStorageSize(400);
 fctrl.introspection.sendAtLeastOncePerXms(1000);
 fctrl.introspection.enableAutoWriteExecutionInformation(false);
+
+traj.introspection.enableAllIntrospection(true);
+traj.introspection.setCallTraceStorageSize(400);
+traj.introspection.sendAtLeastOncePerXms(1000);
+traj.introspection.enableAutoWriteExecutionInformation(false);
+
+combiner.introspection.enableAllIntrospection(true);
+combiner.introspection.setCallTraceStorageSize(400);
+combiner.introspection.sendAtLeastOncePerXms(1000);
+combiner.introspection.enableAutoWriteExecutionInformation(false);
+
+separator.introspection.enableAllIntrospection(true);
+separator.introspection.setCallTraceStorageSize(400);
+separator.introspection.sendAtLeastOncePerXms(1000);
+separator.introspection.enableAutoWriteExecutionInformation(false);
+
+csMsdVM0.introspection.enableAllIntrospection(true);
+csMsdVM0.introspection.setCallTraceStorageSize(400);
+csMsdVM0.introspection.sendAtLeastOncePerXms(1000);
+csMsdVM0.introspection.enableAutoWriteExecutionInformation(false);
 
 
 ir.configure();

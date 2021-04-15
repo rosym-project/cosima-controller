@@ -263,7 +263,7 @@ next_iteration_without_trigger:
 	}
 	else
 	{
-		PRELOG(Debug) << "Current state " << m_activeBarrierCondition->printState() << RTT::endlog();
+		PRELOG(Debug) << "Current state " << m_activeBarrierCondition->printState() << "\n\n" << RTT::endlog();
 	}
 
 	// TODO not sure if double checking is really necessary...?
@@ -354,7 +354,15 @@ next_iteration_without_trigger:
 					std::lock_guard<std::mutex> lockGuard(mutex); // lock because m_activeBarrierCondition is the only thing that can change here.
 					debug_out_name = m_activeTaskContextPtr->getName();
 					m_activeBarrierCondition = m_barrierConditions[debug_out_name];
-					PRELOG(Debug) << "Set barrier condition for " << debug_out_name << " active." << RTT::endlog();
+					PRELOG(Debug) << "(1) Set barrier condition for " << debug_out_name << " active." << RTT::endlog();
+					if (m_activeBarrierCondition->isFulfilled())
+					{
+						PRELOG(Debug) << "Barrier condition for " << debug_out_name << " is fullfilled! So trigger next iteration" << RTT::endlog();
+						m_activeBarrierCondition = 0;
+						this->trigger();
+						return; // trigger
+					}
+					
 				}
 
 				this->executeAndSignal();
@@ -393,7 +401,8 @@ next_iteration_without_trigger:
 					std::lock_guard<std::mutex> lockGuard(mutex); // lock because m_activeBarrierCondition is the only thing that can change here.
 					debug_out_name = m_activeTaskContextPtr->getName();
 					m_activeBarrierCondition = m_barrierConditions[debug_out_name];
-					PRELOG(Debug) << "Set barrier condition for " << debug_out_name << " active." << RTT::endlog();
+					PRELOG(Debug) << "(2) Set barrier condition for " << debug_out_name << " active." << RTT::endlog();
+					PRELOG(Debug) << "Barrier condition for " << debug_out_name << " is fullfilled? " << m_activeBarrierCondition->isFulfilled() << RTT::endlog();
 				}
 			}
 
@@ -437,11 +446,40 @@ bool CoreScheduler::dataOnPortHook(RTT::base::PortInterface *port)
 		PRELOG(Debug) << "Set data " << data_var->getDataName() << " to " << data_var->getDataState() << "." << RTT::endlog();
 		// check for fulfillment only if data is related to activeBarrierCondition
 		std::lock_guard<std::mutex> lockGuard_a(mutex); // lock because m_activeBarrierCondition is also accessed in updateHook().
+
+		for (auto &p_bcEntry : m_barrierConditions)
+		{
+			if ((p_bcEntry.second) && (m_activeBarrierCondition != p_bcEntry.second))
+			{
+				if (p_bcEntry.second->isBarrierDataRelated(data_var))
+				{
+					bool fil = p_bcEntry.second->isFulfilled();
+					PRELOG(Debug) << "Data relevant for " << p_bcEntry.first << ", is? fulfilled: " << fil << "." << RTT::endlog();
+				}
+				else
+				{
+					PRELOG(Debug) << "Data NOT relevant for " << p_bcEntry.first << "." << RTT::endlog();
+				}
+			}
+			// else
+			// {
+			// 	PRELOG(Error) << "Clear non existent pointer: " << p_bcEntry.first << ", ptr = " << p_bcEntry.second << "!" << RTT::endlog();
+			// }
+		}
+
 		if (m_activeBarrierCondition)
 		{
 			bool in = m_activeBarrierCondition->isBarrierDataRelated(data_var);
 			bool fil = m_activeBarrierCondition->isFulfilled();
-			PRELOG(Debug) << "Data is? related: " << in << ", is? fulfilled: " << fil << "." << RTT::endlog();
+			if (in)
+			{
+				PRELOG(Debug) << "Data relevant for: " << m_activeBarrierCondition->getTargetTaskContextName() << ", is? fulfilled: " << fil << "." << RTT::endlog();
+			}
+			else
+			{
+				PRELOG(Debug) << "Data NOT relevant for: " << m_activeBarrierCondition->getTargetTaskContextName() << ", is? fulfilled: " << fil << "." << RTT::endlog();
+			}
+			
 			if (in && fil)
 			{
 				PRELOG(Debug) << "dataOnPortHook( " << port->getName() << " ) successful. Notify updateHook()." << RTT::endlog();

@@ -247,6 +247,9 @@ orocos_component(${CMAKE_PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}/src/scheduling/barrier-data.cpp
   ${PROJECT_SOURCE_DIR}/src/scheduling/barrier-condition.cpp
 
+  ${PROJECT_SOURCE_DIR}/src/transformation/feedback-combiner.cpp
+  ${PROJECT_SOURCE_DIR}/src/transformation/torque-command-separator.cpp
+
 ) # ...you may add multiple source files
 endif()
 
@@ -293,6 +296,9 @@ orocos_component(${CMAKE_PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}/src/scheduling/rtt-core-scheduler.cpp
   ${PROJECT_SOURCE_DIR}/src/scheduling/barrier-data.cpp
   ${PROJECT_SOURCE_DIR}/src/scheduling/barrier-condition.cpp
+
+  ${PROJECT_SOURCE_DIR}/src/transformation/feedback-combiner.cpp
+  ${PROJECT_SOURCE_DIR}/src/transformation/torque-command-separator.cpp
 
 
 ) # ...you may add multiple source files
