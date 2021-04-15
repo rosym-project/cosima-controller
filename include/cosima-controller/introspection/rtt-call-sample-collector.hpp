@@ -53,6 +53,12 @@
 
 #include <rtt/os/TimeService.hpp>
 
+#include <fstream>
+#include <streambuf>
+#include <limits>
+
+#include <iostream>
+
 namespace cosima
 {
 
@@ -85,6 +91,10 @@ class RTTCallSampleCollector : public RTT::TaskContext
 
 	RTT::OutputPort<cosima_msgs::CallTraceSampleCollection> out_port;
 	cosima_msgs::CallTraceSampleCollection out_port_var;
+
+	std::ofstream myfile;
+
+	bool is_last;
 };
 
 } // namespace cosima

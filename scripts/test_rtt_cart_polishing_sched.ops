@@ -36,6 +36,8 @@ ros.import("rtt_sensor_msgs")
 ros.import("rtt_geometry_msgs")
 ros.import("rtt_cosima_msgs")
 
+ros.import("stdint")
+
 ros.import("cosima-controller")
 
 # Load the service to coanfigure the CSs.
@@ -368,10 +370,64 @@ CoreSchedulerService.configure()
 
 
 #############
-loadComponent("collector", "cosima::RTTCallSampleCollector");
-setActivityOnCPU("collector", 0.1, 5, ORO_SCHED_OTHER, 2);
+# loadComponent("collector", "cosima::RTTCallSampleCollector");
+# setActivityOnCPU("collector", 0.1, 5, ORO_SCHED_OTHER, 2);
+
+loadComponent("ir", "cosima::IntrospectionReporter");
+setActivityOnCPU("ir",0,1,ORO_SCHED_OTHER,3);
+connectPeers("ir","CS1");
+connectPeers("ir","CS2");
+connectPeers("ir","CS3");
+connectPeers("ir","KinDyn");
+connectPeers("ir","task");
+connectPeers("ir","prio");
+connectPeers("ir","cartctrl");
+connectPeers("ir","fctrl");
 
 
+CS1.introspection.enableAllIntrospection(true);
+CS1.introspection.setCallTraceStorageSize(400);
+CS1.introspection.sendAtLeastOncePerXms(1000);
+CS1.introspection.enableAutoWriteExecutionInformation(false);
+
+CS2.introspection.enableAllIntrospection(true);
+CS2.introspection.setCallTraceStorageSize(400);
+CS2.introspection.sendAtLeastOncePerXms(1000);
+CS2.introspection.enableAutoWriteExecutionInformation(false);
+
+CS3.introspection.enableAllIntrospection(true);
+CS3.introspection.setCallTraceStorageSize(400);
+CS3.introspection.sendAtLeastOncePerXms(1000);
+CS3.introspection.enableAutoWriteExecutionInformation(false);
+
+KinDyn.introspection.enableAllIntrospection(true);
+KinDyn.introspection.setCallTraceStorageSize(400);
+KinDyn.introspection.sendAtLeastOncePerXms(1000);
+KinDyn.introspection.enableAutoWriteExecutionInformation(false);
+
+task.introspection.enableAllIntrospection(true);
+task.introspection.setCallTraceStorageSize(400);
+task.introspection.sendAtLeastOncePerXms(1000);
+task.introspection.enableAutoWriteExecutionInformation(false);
+
+prio.introspection.enableAllIntrospection(true);
+prio.introspection.setCallTraceStorageSize(400);
+prio.introspection.sendAtLeastOncePerXms(1000);
+prio.introspection.enableAutoWriteExecutionInformation(false);
+
+cartctrl.introspection.enableAllIntrospection(true);
+cartctrl.introspection.setCallTraceStorageSize(400);
+cartctrl.introspection.sendAtLeastOncePerXms(1000);
+cartctrl.introspection.enableAutoWriteExecutionInformation(false);
+
+fctrl.introspection.enableAllIntrospection(true);
+fctrl.introspection.setCallTraceStorageSize(400);
+fctrl.introspection.sendAtLeastOncePerXms(1000);
+fctrl.introspection.enableAutoWriteExecutionInformation(false);
+
+
+ir.configure();
+ir.start();
 
 robot.setControlMode("iiwa14_0", "JointTorqueCtrl")
 

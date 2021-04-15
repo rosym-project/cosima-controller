@@ -207,7 +207,7 @@ void RTTIntrospectionBase::updateHook()
 		{
 			// done = true;
 			// publish if the storage is full.
-			// out_call_trace_sample_vec_port.write(call_trace_storage); // DLW TODO DISABLED WRITE FOR DEBUG!
+			out_call_trace_sample_vec_port.write(call_trace_storage); // DLW TODO DISABLED WRITE FOR DEBUG!
 			// cts_last_send = cts_update.call_duration;
 			call_trace_storage.clear();
 

@@ -108,22 +108,37 @@ void RTTCallSampleCollector::updateHook()
 		port.second->flow = port.second->port.read(port.second->data);
 		if (port.second->flow == RTT::NewData)
 		{
-			if (port.second->data.containerName.compare("updateHook()") == 0)
-			{
-				this->out_port_var.samples = port.second->data;
-			}
+			// myfile << ",\n" << cts;
+
+			myfile << "{\"call_name\":\"" << port.second->data.callName << "\""
+				   << ",\"container_name\":\"" << port.second->data.containerName << "\""
+				   << ",\"call_time\":\"" << port.second->data.call_time << "\""
+				   << ",\"call_duration\":\"" << port.second->data.call_duration << "\""
+				   << ",\"call_type\":\"" << port.second->data.call_type << "\"}";
+
+			myfile << ",";
+			myfile << "\n";
+
+			// if (port.second->data.containerName.compare("updateHook()") == 0)
+			// {
+			// 	this->out_port_var.samples = port.second->data;
+			// }
 		}
 	}
 }
 
 bool RTTCallSampleCollector::startHook()
 {
+	is_last = false;
+	myfile.open(this->getName() + "_" + std::to_string(RTT::os::TimeService::Instance()->getNSecs()) + ".csv");
+	myfile << "{\"root\":[\n";
 	return true;
 }
 
 void RTTCallSampleCollector::stopHook()
 {
-	
+	myfile << "]}";
+	myfile.close();
 }
 
 void RTTCallSampleCollector::cleanupHook()

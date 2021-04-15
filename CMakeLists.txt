@@ -240,6 +240,7 @@ orocos_component(${CMAKE_PROJECT_NAME}
 
   ${PROJECT_SOURCE_DIR}/src/introspection/rtt-introspection-base.cpp
   ${PROJECT_SOURCE_DIR}/src/introspection/rtt-call-sample-collector.cpp
+  ${PROJECT_SOURCE_DIR}/src/introspection/rtt-introspection-reporter.cpp
 
 # Core Scheduler
   ${PROJECT_SOURCE_DIR}/src/scheduling/rtt-core-scheduler.cpp
@@ -286,6 +287,7 @@ orocos_component(${CMAKE_PROJECT_NAME}
 
   ${PROJECT_SOURCE_DIR}/src/introspection/rtt-introspection-base.cpp
   ${PROJECT_SOURCE_DIR}/src/introspection/rtt-call-sample-collector.cpp
+  ${PROJECT_SOURCE_DIR}/src/introspection/rtt-introspection-reporter.cpp
 
 # Core Scheduler
   ${PROJECT_SOURCE_DIR}/src/scheduling/rtt-core-scheduler.cpp
