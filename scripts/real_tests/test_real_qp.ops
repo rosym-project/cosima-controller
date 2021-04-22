@@ -321,3 +321,13 @@ css.start()
 # fD[4]=0.0
 # fD[5]=0.0
 # ctrl.updateContactSituationBlocking(cssD, csdD, fdirD, fD, 5.0)
+
+
+
+# var eigen_vector csd = eigen_vector(6)
+# csd[0]=80.0
+# csd[1]=80.0
+# csd[2]=80.0
+# csd[3]=1.0
+# csd[4]=1.0
+# csd[5]=1.0

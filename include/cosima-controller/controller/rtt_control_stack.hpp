@@ -21,6 +21,8 @@
 #include <geometry_msgs/Transform.h>
 #include <geometry_msgs/Twist.h>
 
+#include <cosima_msgs/CallTraceSample.h>
+
 #include "rtt_stack_cart.hpp"
 
 #include <thread>
@@ -194,6 +196,15 @@ namespace cosima
 
         Eigen::MatrixXd pose_out_data;
         Eigen::Quaterniond rotation;
+
+        // Time
+        cosima_msgs::CallTraceSample time_gains_start;
+        cosima_msgs::CallTraceSample time_force_start;
+        cosima_msgs::CallTraceSample time_cs_start;
+
+        RTT::OutputPort<cosima_msgs::CallTraceSample> time_gains_start_port;
+        RTT::OutputPort<cosima_msgs::CallTraceSample> time_force_start_port;
+        RTT::OutputPort<cosima_msgs::CallTraceSample> time_cs_start_port;
     };
 
   } // namespace controller

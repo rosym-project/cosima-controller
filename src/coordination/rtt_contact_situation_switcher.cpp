@@ -434,6 +434,9 @@ void ContactSituationSwitcher::updateHook()
             slerp_time_ = 1.0;
         }
         out_orn_ = cur_orn_.slerp(slerp_time_, des_orn_);
+        auto euler = out_orn_.toRotationMatrix().eulerAngles(0, 1, 2);
+
+
         out_orn_.normalize();
 
         // out_orn_ = des_orn_;
