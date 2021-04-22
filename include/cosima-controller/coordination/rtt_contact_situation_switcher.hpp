@@ -81,6 +81,7 @@ namespace cosima
 
       bool assemble_srv(cosima_msgs::AssembleRequest& req,cosima_msgs::AssembleResponse& resp);
       bool move_srv(cosima_msgs::MoveRequest& req,cosima_msgs::MoveResponse& resp);
+      bool move_async_srv(cosima_msgs::MoveRequest& req,cosima_msgs::MoveResponse& resp);
 
       bool updateContactSituationBlocking_srv(cosima_msgs::ContactSituationRequest& req,cosima_msgs::ContactSituationResponse& resp);
 

@@ -56,6 +56,8 @@ ContactSituationSwitcher::ContactSituationSwitcher(std::string const &name) : RT
 
     this->addOperation("assemble_srv",&ContactSituationSwitcher::assemble_srv,this);
     this->addOperation("move_srv",&ContactSituationSwitcher::move_srv,this);
+    this->addOperation("move_async_srv",&ContactSituationSwitcher::move_async_srv,this);
+    
 
 }
 
@@ -66,7 +68,7 @@ bool ContactSituationSwitcher::assemble_srv(cosima_msgs::AssembleRequest& req,co
 
 bool ContactSituationSwitcher::move_srv(cosima_msgs::MoveRequest& req,cosima_msgs::MoveResponse& resp)
 {
-    
+    skill_type = 0;
     //
     //
     if (skill_type == 0)
@@ -108,6 +110,39 @@ bool ContactSituationSwitcher::move_srv(cosima_msgs::MoveRequest& req,cosima_msg
     // {
     //     // ASSEMBLY -> Do Nothing
     // }
+
+    return true;
+}
+
+bool ContactSituationSwitcher::move_async_srv(cosima_msgs::MoveRequest& req,cosima_msgs::MoveResponse& resp)
+{
+    skill_type = 0;
+    if (skill_type == 0)
+    {
+        _pose_var_trans(0) = req.i_pose.position.x;
+        _pose_var_trans(1) = req.i_pose.position.y;
+        _pose_var_trans(2) = req.i_pose.position.z;
+        //
+        _pose_var_orn.w() = req.i_pose.orientation.w;
+        _pose_var_orn.x() = req.i_pose.orientation.x;
+        _pose_var_orn.y() = req.i_pose.orientation.y;
+        _pose_var_orn.z() = req.i_pose.orientation.z;
+
+        move_speed_rot_max = req.i_max_rot_sec;
+        move_speed_trans_max = req.i_max_trans_sec;
+
+        // IDLE -> Do It
+        PRELOG(Error) << "Received command " << _pose_var_trans << "with rot = " << move_speed_rot_max << " and trans = " << move_speed_trans_max << " in IDLE" << RTT::endlog();
+        new_move_command = true;
+        // Wait until main() sends data
+        // std::unique_lock<std::mutex> lck(m);
+        // cv.wait(lck);
+    }
+    else
+    {
+        PRELOG(Error) << "Error: Already processing!" << RTT::endlog();
+        return false;
+    }
 
     return true;
 }
@@ -245,6 +280,7 @@ bool ContactSituationSwitcher::configureHook()
     {
         rosservice->connect("assemble_srv",this->getName()+"/assemble_srv","cosima_msgs/Assemble");
         rosservice->connect("move_srv",this->getName()+"/move_srv","cosima_msgs/Move");
+        rosservice->connect("move_async_srv",this->getName()+"/move_async_srv","cosima_msgs/Move");
         if (this->skill_stack_ptr)
         {
             rosservice->connect("updateContactSituationBlocking_srv",this->getName()+"/updateContactSituationBlocking_srv","cosima_msgs/ContactSituation");

@@ -127,21 +127,21 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
     time_gains_start.containerName = "ctrl";
     time_gains_start.call_time = 0.0;
     time_gains_start.call_duration = 0.0;
-    time_gains_start.call_type = 0;
+    time_gains_start.call_type = 2;
 
     time_force_start = cosima_msgs::CallTraceSample();
     time_force_start.callName = "force";
     time_force_start.containerName = "ctrl";
     time_force_start.call_time = 0.0;
     time_force_start.call_duration = 0.0;
-    time_force_start.call_type = 0;
+    time_force_start.call_type = 2;
 
     time_cs_start = cosima_msgs::CallTraceSample();
     time_cs_start.callName = "cs";
     time_cs_start.containerName = "ctrl";
     time_cs_start.call_time = 0.0;
     time_cs_start.call_duration = 0.0;
-    time_cs_start.call_type = 0;
+    time_cs_start.call_type = 2;
 
     time_gains_start_port.setName("time_gains_start_port");
     time_gains_start_port.setDataSample(time_gains_start);
@@ -151,7 +151,7 @@ RTTControlStack::RTTControlStack(std::string const & name) : RTT::TaskContext(na
     time_force_start_port.setDataSample(time_force_start);
     ports()->addPort(time_force_start_port);
 
-    time_cs_start_port.setName("time_cs_start");
+    time_cs_start_port.setName("time_cs_start_port");
     time_cs_start_port.setDataSample(time_gains_start);
     ports()->addPort(time_cs_start_port);
 }
@@ -278,6 +278,9 @@ void RTTControlStack::updateHook()
     if (triggered_update_contacts)
     {
         time_cs_start.call_time = RTT::os::TimeService::Instance()->getNSecs()*1e-6;
+        time_cs_start.call_duration = 0.0;
+        time_cs_start.call_type = 0;
+        time_cs_start_port.write(time_cs_start);
 
         triggered_update_contacts = false;
         // stiff & damp
@@ -319,6 +322,9 @@ void RTTControlStack::updateHook()
     if (triggered_update_gains)
     {
         time_gains_start.call_time = RTT::os::TimeService::Instance()->getNSecs()*1e-6;
+        time_gains_start.call_duration = 0.0;
+        time_gains_start.call_type = 0;
+        time_gains_start_port.write(time_gains_start);
 
         triggered_update_gains = false;
         s_cart_stiff_out_data = cart_stiff_out_data;
@@ -352,6 +358,7 @@ void RTTControlStack::updateHook()
         finished_update_gains = true;
 
         time_gains_start.call_duration = RTT::os::TimeService::Instance()->getNSecs()*1e-6;
+        time_gains_start.call_type = 1;
         time_gains_start_port.write(time_gains_start);
 
         cv.notify_one();
@@ -378,6 +385,10 @@ void RTTControlStack::updateHook()
     if (triggered_update_force)
     {
         time_force_start.call_time = RTT::os::TimeService::Instance()->getNSecs()*1e-6;
+        time_force_start.call_duration = 0.0;
+        time_force_start.call_type = 0;
+        time_force_start_port.write(time_force_start);
+        
 
         triggered_update_force = false;
         s_ff_out_data = ff_out_data;
@@ -406,6 +417,7 @@ void RTTControlStack::updateHook()
         finished_update_force = true;
 
         time_force_start.call_duration = RTT::os::TimeService::Instance()->getNSecs()*1e-6;
+        time_force_start.call_type = 1;
         time_force_start_port.write(time_force_start);
 
         cv_force.notify_one();
@@ -428,6 +440,7 @@ void RTTControlStack::updateHook()
         notify_update_contacts_from_f = false;
 
         time_cs_start.call_duration = RTT::os::TimeService::Instance()->getNSecs()*1e-6;
+        time_cs_start.call_type = 1;
         time_cs_start_port.write(time_cs_start);
 
         cv_contact.notify_one();

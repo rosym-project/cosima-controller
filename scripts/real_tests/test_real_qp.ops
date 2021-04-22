@@ -103,6 +103,7 @@ ctrl.setJntPosture(6,0.785342)
 
 stream("ctrl.in_desiredTaskSpace_port", ros.topic("/cart/traj_setpoint"))
 
+
 stream("KinDyn.out_cartPos_0_port", ros.topic("/robot/fdb/cart_pose_0"))
 ctrl.setCartDamping(9)
 ctrl.setCartStiffness(300)
@@ -199,6 +200,11 @@ css.configure()
 
 connect("KinDyn.out_cartPos_0_port","css.in_pose_port", cp)
 connect("css.out_desiredTaskSpace_port","ctrl.in_desiredTaskSpace_port", cp)
+stream("css.out_desiredTaskSpace_port", ros.topic("/cart/traj_cmd"))
+
+stream("ctrl.time_gains_start_port", ros.topic("/cs/config"))
+stream("ctrl.time_force_start_port", ros.topic("/cs/force"))
+stream("ctrl.time_cs_start_port", ros.topic("/cs/switch"))
 
 
 robot.start()
